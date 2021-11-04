@@ -1,0 +1,52 @@
+---
+name: ci-gradle
+
+on:
+  workflow_call:
+    inputs:
+      publish_snapshots:
+        description: Whether to attempt publishing snapshots. When false, the workflow will only run build.
+        type: boolean
+        default: true
+        required: false
+    secrets:
+      ossrh_username:
+        required: true
+      ossrh_token:
+        required: true
+      ossrh_signing_key:
+        required: true
+      ossrh_signing_password:
+        required: true
+      gradle_enterprise_access_key:
+        description: Value of the Gradle Enterprise access token to use.
+        required: true
+
+env:
+  GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}
+  ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
+  ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
+  ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
+  ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: gradle/wrapper-validation-action@v1
+      - uses: actions/setup-java@v2
+        with:
+          distribution: temurin
+          java-version: 11
+      - name: build
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: build
+      - name: publish-snapshots
+        if: ${{ inputs.publish_snapshots }} && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: snapshot publish -PforceSigning -x test

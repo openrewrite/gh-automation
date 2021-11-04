@@ -1,0 +1,58 @@
+---
+name: publish-gradle
+
+on:
+  workflow_call:
+    secrets:
+      ossrh_username:
+        required: true
+      ossrh_token:
+        required: true
+      ossrh_signing_key:
+        required: true
+      ossrh_signing_password:
+        required: true
+      gradle_enterprise_access_key:
+        description: Value of the Gradle Enterprise access token to use.
+        required: true
+
+env:
+  GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}
+  ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
+  ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
+  ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
+  ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v2
+        with:
+          distribution: temurin
+          java-version: 11
+
+      - name: publish-candidate
+        if: contains(github.ref, '-rc.')
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: |
+            -Prelease.disableGitChecks=true
+            -Prelease.useLastTag=true
+            candidate
+            publish
+            closeAndReleaseSonatypeStagingRepository
+
+      - name: publish-release
+        if: (!contains(github.ref, '-rc.'))
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: |
+            -Prelease.disableGitChecks=true
+            -Prelease.useLastTag=true
+            final
+            publish
+            closeAndReleaseSonatypeStagingRepository

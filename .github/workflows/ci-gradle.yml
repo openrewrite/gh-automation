@@ -14,13 +14,13 @@ on:
         description: Value of the Gradle Enterprise access token to use.
         required: true
       ossrh_username:
-        required: true
+        required: false
       ossrh_token:
-        required: true
+        required: false
       ossrh_signing_key:
-        required: true
+        required: false
       ossrh_signing_password:
-        required: true
+        required: false
 
 env:
   GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}

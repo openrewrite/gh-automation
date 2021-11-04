@@ -10,6 +10,9 @@ on:
         default: true
         required: false
     secrets:
+      gradle_enterprise_access_key:
+        description: Value of the Gradle Enterprise access token to use.
+        required: true
       ossrh_username:
         required: true
       ossrh_token:
@@ -17,9 +20,6 @@ on:
       ossrh_signing_key:
         required: true
       ossrh_signing_password:
-        required: true
-      gradle_enterprise_access_key:
-        description: Value of the Gradle Enterprise access token to use.
         required: true
 
 env:

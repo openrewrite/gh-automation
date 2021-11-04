@@ -7,7 +7,7 @@ on:
       publish_snapshots:
         description: Whether to attempt publishing snapshots. When false, the workflow will only run build.
         type: boolean
-        default: false
+        default: true
         required: false
     secrets:
       gradle_enterprise_access_key:

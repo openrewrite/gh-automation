@@ -6,8 +6,8 @@ on:
     inputs:
       publish_snapshots:
         description: Whether to attempt publishing snapshots. When false, the workflow will only run build.
-        type: string
-        default: "no"
+        type: boolean
+        default: false
         required: true
     secrets:
       gradle_enterprise_access_key:
@@ -46,7 +46,7 @@ jobs:
         with:
           arguments: build
       - name: publish-snapshots
-        if: contains(inputs.publish_snapshots, 'yes') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+        if: inputs.publish_snapshots && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
         uses: gradle/gradle-build-action@v2
         with:
           arguments: snapshot publish -PforceSigning -x test

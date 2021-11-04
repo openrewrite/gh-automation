@@ -8,6 +8,10 @@ on:
         description: The Moderne API access token to use for pushing the generated ASTs.
         required: true
 
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ingest:
     runs-on: ubuntu-latest

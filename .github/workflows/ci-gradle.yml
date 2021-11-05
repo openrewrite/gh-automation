@@ -38,7 +38,7 @@ on:
         required: false
 
 env:
-  GRADLE_SWITCHES: --console=rich --info --stacktrace --no-daemon
+  GRADLE_SWITCHES: --console=rich --info --stacktrace --warning-mode=all --no-daemon
   GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}
 
 jobs:

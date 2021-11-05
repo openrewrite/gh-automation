@@ -6,7 +6,7 @@ on:
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
-        required: true
+        required: false
       ossrh_username:
         required: true
       ossrh_token:

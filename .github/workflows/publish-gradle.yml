@@ -17,6 +17,7 @@ on:
         required: true
 
 env:
+  GRADLE_SWITCHES: --console=rich --info --stacktrace --no-daemon
   GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}
   ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
   ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
@@ -40,6 +41,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: |
+            ${{ env.GRADLE_SWITCHES }}
             -Prelease.disableGitChecks=true
             -Prelease.useLastTag=true
             candidate
@@ -51,6 +53,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: |
+            ${{ env.GRADLE_SWITCHES }}
             -Prelease.disableGitChecks=true
             -Prelease.useLastTag=true
             final

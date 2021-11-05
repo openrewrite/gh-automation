@@ -38,6 +38,7 @@ on:
         required: false
 
 env:
+  GRADLE_SWITCHES: --console=rich --info --stacktrace --no-daemon
   GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}
 
 jobs:
@@ -68,7 +69,7 @@ jobs:
       - name: build
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: build
+          arguments: ${{ env.GRADLE_SWITCHES }} build
       - name: publish-tests
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always() && inputs.publish_tests
@@ -78,7 +79,7 @@ jobs:
         if: inputs.publish_snapshots && github.event_name != 'pull_request' && github.repository_owner == 'openrewrite'
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: snapshot publish -PforceSigning -x test
+          arguments: ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
         env:
           ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}

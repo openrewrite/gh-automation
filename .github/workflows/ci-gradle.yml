@@ -75,7 +75,7 @@ jobs:
         with:
           files: "**/build/test-results/**/TEST-*.xml"
       - name: publish-snapshots
-        if: inputs.publish_snapshots && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+        if: inputs.publish_snapshots && github.event_name != 'pull_request' && github.repository_owner == 'openrewrite'
         uses: gradle/gradle-build-action@v2
         with:
           arguments: snapshot publish -PforceSigning -x test

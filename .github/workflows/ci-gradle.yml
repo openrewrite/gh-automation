@@ -34,10 +34,6 @@ on:
 
 env:
   GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}
-  ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
-  ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
-  ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
-  ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
 
 jobs:
   build:
@@ -78,3 +74,8 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: snapshot publish -PforceSigning -x test
+        env:
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}

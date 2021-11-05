@@ -73,7 +73,7 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: inputs.publish_tests && (success() || failure())
         with:
-          files: "**/build/test-results/test/TEST-*.xml"
+          files: "**/build/test-results/**/TEST-*.xml"
       - name: publish-snapshots
         if: inputs.publish_snapshots && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
         uses: gradle/gradle-build-action@v2

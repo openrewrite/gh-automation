@@ -42,6 +42,7 @@ jobs:
         with:
           arguments: |
             ${{ env.GRADLE_SWITCHES }}
+            -Preleasing
             -Prelease.disableGitChecks=true
             -Prelease.useLastTag=true
             candidate
@@ -54,6 +55,7 @@ jobs:
         with:
           arguments: |
             ${{ env.GRADLE_SWITCHES }}
+            -Preleasing
             -Prelease.disableGitChecks=true
             -Prelease.useLastTag=true
             final

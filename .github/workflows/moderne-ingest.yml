@@ -11,6 +11,7 @@ on:
 jobs:
   ingest:
     runs-on: ubuntu-latest
+    if: secrets.moderne_api_access_token != ''
     steps:
       - uses: actions/checkout@v2
       - uses: docker://moderne/ingest:java11-latest

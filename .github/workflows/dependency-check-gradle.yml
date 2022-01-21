@@ -1,0 +1,68 @@
+---
+name: dependency-check-gradle
+
+on:
+  workflow_call:
+    inputs:
+      notify_slack:
+        description: Whether to fire off a slack notification if the dependency-check report fails, such as a detected CVE hitting the CVSS threshold.
+        type: boolean
+        default: true
+        required: false
+      upload_artifact:
+        description: Whether to upload the generated dependency-check report as an artifact to the GitHub Action job run.
+        type: boolean
+        default: true
+        required: false
+    secrets:
+      slack_alerts_webhook:
+        description: The target slack alerts webhook, assuming notify_slack is passed as true.
+        required: false
+      gradle_enterprise_access_key:
+        description: Value of the Gradle Enterprise access token to use.
+        required: false
+      gradle_enterprise_cache_username:
+        description: Value of the Gradle Enterprise Cache username to use.
+        required: false
+      gradle_enterprise_cache_password:
+        description: Value of the Gradle Enterprise Cache password to use.
+        required: false
+
+env:
+  GRADLE_SWITCHES: --console=plain --info --warning-mode=all
+  GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}
+  GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.gradle_enterprise_cache_username }}
+  GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.gradle_enterprise_cache_password }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v2
+        with:
+          distribution: temurin
+          java-version: 11
+      - name: dependency-check
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: ${{ env.GRADLE_SWITCHES }} dependencyCheckAggregate
+      - uses: actions/upload-artifact@v2
+        if: always() && inputs.upload_artifact
+        with:
+          name: dependency-check-report
+          path: build/reports
+      - name: notify-slack
+        if: failure() && inputs.notify_slack
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_CHANNEL: vulnerability-alerts
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_ICON: https://image.pngaaa.com/813/2886813-middle.png
+          SLACK_MESSAGE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SLACK_TITLE: ${{ github.repository }} dependency-check vulnerability report
+          SLACK_USERNAME: ${{ github.repository }}
+          SLACK_WEBHOOK: ${{ secrets.slack_alerts_webhook }}
+          MSG_MINIMAL: true

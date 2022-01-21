@@ -35,7 +35,7 @@ env:
   GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.gradle_enterprise_cache_password }}
 
 jobs:
-  build:
+  dependency-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

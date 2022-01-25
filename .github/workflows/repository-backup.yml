@@ -3,15 +3,21 @@ name: repository-backup
 
 on:
   workflow_call:
+    inputs:
+      bucket_storage_service_url:
+        description: The URL to the object storage service. (e.g. https://s3.amazonaws.com, https://s3.us-west-2.amazonaws.com, etc.). See https://docs.aws.amazon.com/general/latest/gr/s3.html for AWS.
+        type: string
+        default: https://s3.us-west-2.amazonaws.com
+        required: false
     secrets:
       bucket_access_key_id:
-        description: Value of the cloud storage bucket backup access key ID (e.g., S3 has ACCESS_KEY_ID).
+        description: Value of the object storage bucket backup access key ID (e.g., S3 has ACCESS_KEY_ID).
         required: true
       bucket_secret_access_key:
-        description: Value of the cloud storage bucket backup secret access key (e.g., S3 has ACCESS_KEY_SECRET).
+        description: Value of the object storage bucket backup secret access key (e.g., S3 has ACCESS_KEY_SECRET).
         required: true
       bucket_mirror_target:
-        description: Name of the cloud storage bucket backup to use.
+        description: Name of the object storage bucket backup to use.
         required: true
 
 jobs:
@@ -26,6 +32,6 @@ jobs:
           ACCESS_KEY_ID: ${{ secrets.bucket_access_key_id }}
           SECRET_ACCESS_KEY: ${{ secrets.bucket_secret_access_key }}
           MIRROR_TARGET: ${{ secrets.bucket_mirror_target }}/${{ github.repository }}
-          STORAGE_SERVICE_URL: https://s3.us-west-2.amazonaws.com
+          STORAGE_SERVICE_URL: ${{ inputs.bucket_storage_service_url }}
         with:
           args: --overwrite --remove

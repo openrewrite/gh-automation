@@ -1,0 +1,27 @@
+---
+name: repository-backup
+
+on:
+  workflow_call:
+    secrets:
+      bucket_access_key_id:
+        description: Value of the cloud storage bucket backup access key ID (e.g., S3 has ACCESS_KEY_ID).
+        required: true
+      bucket_secret_access_key:
+        description: Value of the cloud storage bucket backup secret access key (e.g., S3 has ACCESS_KEY_SECRET).
+        required: true
+
+jobs:
+  repository-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: peter-evans/s3-backup@v1
+        env:
+          ACCESS_KEY_ID: ${{ secrets.bucket_access_key_id }}
+          SECRET_ACCESS_KEY: ${{ secrets.bucket_secret_access_key }}
+          MIRROR_TARGET: moderne-github-repository-backups/${{ github.repository }}
+        with:
+          args: --overwrite --remove

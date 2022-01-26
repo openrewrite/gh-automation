@@ -24,7 +24,15 @@ on:
         type: string
         required: false
         default: ""
+      setup_google_cloud_auth:
+        description: Whether to attempt setting up google cloud auth. Useful for authenticating against Google Container Registry.
+        type: boolean
+        default: false
+        required: false
     secrets:
+      google_cloud_service_account_key:
+        description: Optional Google Cloud service account key.
+        required: false
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
         required: false
@@ -74,6 +82,10 @@ jobs:
         if: inputs.build_on_graal && inputs.install_graal_languages != ''
         run: gu install ${{ inputs.install_graal_languages }}
       ########################
+      - uses: google-github-actions/setup-gcloud@v0.4.0
+        if: inputs.setup_google_cloud_auth
+        with:
+          service_account_key: ${{ secrets.google_cloud_service_account_key }}
       - name: build
         uses: gradle/gradle-build-action@v2
         with:

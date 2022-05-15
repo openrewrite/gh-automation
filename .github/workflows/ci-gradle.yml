@@ -63,7 +63,7 @@ jobs:
         if: (!(inputs.build_on_graal))
         with:
           distribution: temurin
-          java-version: 11
+          java-version: 17
       ###
       - uses: DeLaGuardo/setup-graalvm@5.0
         if: inputs.build_on_graal

@@ -79,7 +79,7 @@ jobs:
         with:
           arguments: ${{ env.GRADLE_SWITCHES }} build
       - name: publish-tests
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: EnricoMi/publish-unit-test-result-action@v2
         if: always() && inputs.publish_tests
         with:
           files: ./**/build/test-results/**/TEST-*.xml

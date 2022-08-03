@@ -62,7 +62,7 @@ jobs:
       - uses: actions/setup-java@v3.4.1
         if: (!(inputs.build_on_graal))
         with:
-          distribution: temurin
+          distribution: zulu
           java-version: 17
       ###
       - uses: DeLaGuardo/setup-graalvm@5.0

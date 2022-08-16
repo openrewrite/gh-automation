@@ -30,7 +30,7 @@ on:
 
 jobs:
   dependency-check:
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     steps:
       - name: deprecation notice
         run: echo "This action is deprecated. See http://github.com/moderneinc/dependency-vulnerability-reports"

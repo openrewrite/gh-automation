@@ -10,7 +10,7 @@ on:
 
 jobs:
   ingest:
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'openrewrite'
     steps:
       - uses: actions/checkout@v3

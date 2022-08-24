@@ -78,11 +78,6 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: ${{ env.GRADLE_SWITCHES }} build
-      - name: publish-tests
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always() && inputs.publish_tests
-        with:
-          junit_files: ./**/build/test-results/**/TEST-*.xml
       - name: publish-snapshots
         if: inputs.publish_snapshots && github.event_name != 'pull_request' && github.repository_owner == 'openrewrite'
         uses: gradle/gradle-build-action@v2

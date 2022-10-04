@@ -23,6 +23,7 @@ on:
 jobs:
   repository-backup:
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'openrewrite'
     steps:
       - uses: actions/checkout@v3
         with:

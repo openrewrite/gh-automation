@@ -59,7 +59,7 @@ jobs:
       - uses: gradle/wrapper-validation-action@v1
       ########################
       # The biggest divergence point is choosing between actions/setup-java or graalvm
-      - uses: actions/setup-java@v3.7.0
+      - uses: actions/setup-java@v3.6.0
         if: (!(inputs.build_on_graal))
         with:
           distribution: zulu

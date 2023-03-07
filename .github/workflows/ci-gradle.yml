@@ -64,6 +64,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
       ###
       - uses: DeLaGuardo/setup-graalvm@5.0
         if: inputs.build_on_graal

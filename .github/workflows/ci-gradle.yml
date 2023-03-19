@@ -4,6 +4,11 @@ name: ci-gradle
 on:
   workflow_call:
     inputs:
+      java_version:
+        description: Java version for setup-java
+        type: string
+        required: false
+        default: 17
       publish_snapshots:
         description: Whether to attempt publishing snapshots. When false, the workflow will only run build.
         type: boolean
@@ -63,7 +68,7 @@ jobs:
         if: (!(inputs.build_on_graal))
         with:
           distribution: temurin
-          java-version: 17
+          java-version: ${{ inputs.java_version }}
       ###
       - uses: DeLaGuardo/setup-graalvm@5.0
         if: inputs.build_on_graal

@@ -19,16 +19,6 @@ on:
         type: boolean
         default: true
         required: false
-      build_on_graal:
-        description: Whether to perform the main build and test operation on graalvm. When false, the workflow will use actions/setup-java.
-        type: boolean
-        required: false
-        default: false
-      install_graal_languages:
-        description: Single string of space-separated graal languages to install when "build_on_graal" is true. For example, "nodejs python ruby R llvm-toolchain"
-        type: string
-        required: false
-        default: ""
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
@@ -63,21 +53,10 @@ jobs:
           fetch-depth: 0
       - uses: gradle/wrapper-validation-action@v1
       ########################
-      # The biggest divergence point is choosing between actions/setup-java or graalvm
       - uses: actions/setup-java@v3.11.0
-        if: (!(inputs.build_on_graal))
         with:
           distribution: temurin
           java-version: ${{ inputs.java_version }}
-      ###
-      - uses: DeLaGuardo/setup-graalvm@5.0
-        if: inputs.build_on_graal
-        with:
-          java: java11
-          graalvm: 21.2.0
-      - name: install-polyglot-languages
-        if: inputs.build_on_graal && inputs.install_graal_languages != ''
-        run: gu install ${{ inputs.install_graal_languages }}
 
       ########################
       - name: build

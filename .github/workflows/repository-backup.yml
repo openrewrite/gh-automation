@@ -25,9 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'openrewrite'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          progress: false
       - uses: peter-evans/s3-backup@v1
         env:
           ACCESS_KEY_ID: ${{ secrets.bucket_access_key_id }}

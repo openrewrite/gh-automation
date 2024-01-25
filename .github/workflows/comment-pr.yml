@@ -1,0 +1,59 @@
+---
+name: comment-pr
+
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#using-data-from-the-triggering-workflow
+on:
+  workflow_call:
+    secrets:
+      GH_PAT_ACTIONS_READ:
+        required: true
+        description: |
+          A GitHub PAT with `actions:read` permissions on the target repo.
+          This is used to download the patch and the PR number from the triggering workflow.
+          See https://docs.github.com/en/actions/reference/authentication-in-a-workflow#permissions-for-the-github_token
+
+# https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+# Since this pull request has write permissions on the target repo, we should **NOT** execute any untrusted code.
+jobs:
+  post-suggestions:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    env:
+      # Used by https://github.com/googleapis/code-suggester?tab=readme-ov-file#review-a-pull-request
+      ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{github.event.workflow_run.head_branch}}
+          repository: ${{github.event.workflow_run.head_repository.full_name}}
+
+      # Download the patch
+      - uses: actions/download-artifact@v4
+        with:
+          name: patch
+          github-token: ${{ secrets.GH_PAT_ACTIONS_READ }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Apply patch
+        run: |
+          git apply git-diff.patch --allow-empty
+          rm git-diff.patch
+
+      # Download the PR number
+      - uses: actions/download-artifact@v4
+        with:
+          name: pr_number
+          github-token: ${{ secrets.GH_PAT_ACTIONS_READ }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Read pr_number.txt
+        run: |
+          PR_NUMBER=$(cat pr_number.txt)
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+          rm pr_number.txt
+
+      # Post suggestions as a comment on the PR
+      - uses: googleapis/code-suggester@v2
+        with:
+          command: review
+          pull_number: ${{ env.PR_NUMBER }}
+          git_dir: '.'

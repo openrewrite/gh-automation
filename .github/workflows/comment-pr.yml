@@ -17,8 +17,6 @@ on:
 jobs:
   post-suggestions:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     env:
       # Used by https://github.com/googleapis/code-suggester?tab=readme-ov-file#review-a-pull-request
       ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}

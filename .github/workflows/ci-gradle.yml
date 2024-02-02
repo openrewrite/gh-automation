@@ -61,7 +61,7 @@ jobs:
 
       ########################
       - name: build
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v3
         with:
           arguments: ${{ env.GRADLE_SWITCHES }} build
 
@@ -70,7 +70,7 @@ jobs:
           inputs.publish_snapshots &&
           github.event_name != 'pull_request' &&
           (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v3
         with:
           arguments: ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
         env:

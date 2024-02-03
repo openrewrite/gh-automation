@@ -14,11 +14,6 @@ on:
         type: boolean
         default: true
         required: false
-      publish_tests:
-        description: Whether to attempt publishing unit test results.
-        type: boolean
-        default: true
-        required: false
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.

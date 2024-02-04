@@ -26,7 +26,7 @@ on:
             - org.openrewrite.java.recipes.ExecutionContextParameterName
             - org.openrewrite.java.recipes.MissingOptionExample
             - org.openrewrite.java.recipes.RecipeEqualsAndHashCodeCallSuper
-          #  - org.openrewrite.java.recipes.SelectRecipeExamples
+            - org.openrewrite.java.recipes.SelectRecipeExamples
             - org.openrewrite.java.recipes.SourceSpecTextBlockIndentation
       init_gradle:
         description: The Gradle init script to apply to the PR

@@ -3,6 +3,47 @@ name: receive-pr
 
 on:
   workflow_call:
+    inputs:
+      recipe:
+        description: The OpenRewrite recipe to apply to the PR
+        type: string
+        required: false
+        default: org.openrewrite.OpenRewriteBestPractices
+      rewrite_yml:
+        description: The contents of the rewrite.yml file to apply to the PR
+        type: string
+        required: false
+        default: |
+          type: specs.openrewrite.org/v1beta/recipe
+          name: org.openrewrite.OpenRewriteBestPractices
+          displayName: OpenRewrite best practices
+          description: Best practices for OpenRewrite recipe development.
+          preconditions:
+            - org.openrewrite.java.search.FindTypes:
+                fullyQualifiedTypeName: org.openrewrite.Recipe
+                checkAssignability: true
+          recipeList:
+            - org.openrewrite.java.recipes.ExecutionContextParameterName
+            - org.openrewrite.java.recipes.MissingOptionExample
+            - org.openrewrite.java.recipes.RecipeEqualsAndHashCodeCallSuper
+          #  - org.openrewrite.java.recipes.SelectRecipeExamples
+            - org.openrewrite.java.recipes.SourceSpecTextBlockIndentation
+      init_gradle:
+        description: The Gradle init script to apply to the PR
+        type: string
+        required: false
+        default: |
+          initscript {
+            repositories {
+              maven { url 'https://plugins.gradle.org/m2' }
+            }
+            dependencies {
+              classpath('org.openrewrite:plugin:latest.release')
+            }
+          }
+          rootProject {
+            plugins.apply(org.openrewrite.gradle.RewritePlugin)
+          }
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
@@ -17,25 +58,12 @@ jobs:
         with:
           ref: ${{github.event.pull_request.head.ref}}
           repository: ${{github.event.pull_request.head.repo.full_name}}
-      - uses: gradle/wrapper-validation-action@v1
+      - uses: gradle/wrapper-validation-action@v2
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: 'gradle'
-
-      # Apply license headers and capture the diff
-      - name: Check licenses
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          arguments: ${{ env.GRADLE_SWITCHES }} licenseFormat
-
-      - name: Create patch
-        run: git diff > git-diff.patch
-      - uses: actions/upload-artifact@v4
-        with:
-          name: patch
-          path: git-diff.patch
 
       # Capture the PR number
       - name: Create pr_number.txt
@@ -44,3 +72,31 @@ jobs:
         with:
           name: pr_number
           path: pr_number.txt
+      - name: Remove pr_number.txt
+        run: rm -f pr_number.txt
+
+      # Apply license headers
+      - name: Apply license headers
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          arguments: ${{ env.GRADLE_SWITCHES }} licenseFormat
+
+      # Execute best practices recipe
+      - name: Create temporary files
+        run: |
+          echo "${{ inputs.rewrite_yml }}" > rewrite.yml
+          echo "${{ inputs.init_gradle }}" > rewrite-init.gradle
+      - name: Apply OpenRewrite best practices
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          arguments: ${{ env.GRADLE_SWITCHES }} rewriteRun --init-script rewrite-init.gradle -Drewrite.activeRecipe=${{ inputs.recipe }}
+      - name: Remove temporary files
+        run: rm -f rewrite.yml rewrite-init.gradle
+
+      # Capture the diff
+      - name: Create patch
+        run: git diff > git-diff.patch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patch
+          path: git-diff.patch

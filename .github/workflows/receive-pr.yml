@@ -8,16 +8,24 @@ on:
         description: The OpenRewrite recipe to apply to the PR
         type: string
         required: false
-        default: org.openrewrite.OpenRewriteBestPractices
+        default: org.openrewrite.recipes.OpenRewriteBestPractices
       rewrite_yml:
         description: The contents of the rewrite.yml file to apply to the PR
         type: string
         required: false
         default: |
           type: specs.openrewrite.org/v1beta/recipe
-          name: org.openrewrite.OpenRewriteBestPractices
+          name: org.openrewrite.recipes.OpenRewriteBestPractices
           displayName: OpenRewrite best practices
           description: Best practices for OpenRewrite recipe development.
+          recipeList:
+            - org.openrewrite.recipes.JavaRecipeBestPractices
+            - org.openrewrite.recipes.RecipeTestingBestPractices
+          ---
+          type: specs.openrewrite.org/v1beta/recipe
+          name: org.openrewrite.recipes.JavaRecipeBestPractices
+          displayName: Java Recipe best practices
+          description: Best practices for Java recipe development.
           preconditions:
             - org.openrewrite.java.search.FindTypes:
                 fullyQualifiedTypeName: org.openrewrite.Recipe
@@ -26,6 +34,16 @@ on:
             - org.openrewrite.java.recipes.ExecutionContextParameterName
             - org.openrewrite.java.recipes.MissingOptionExample
             - org.openrewrite.java.recipes.RecipeEqualsAndHashCodeCallSuper
+          ---
+          type: specs.openrewrite.org/v1beta/recipe
+          name: org.openrewrite.recipes.RecipeTestingBestPractices
+          displayName: Recipe testing best practices
+          description: Best practices for testing recipes.
+          preconditions:
+            - org.openrewrite.java.search.FindTypes:
+                fullyQualifiedTypeName: org.openrewrite.test.RewriteTest
+                checkAssignability: true
+          recipeList:
             - org.openrewrite.java.recipes.SelectRecipeExamples
             - org.openrewrite.java.recipes.SourceSpecTextBlockIndentation
       init_gradle:

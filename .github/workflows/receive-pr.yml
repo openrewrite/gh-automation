@@ -14,39 +14,7 @@ on:
         type: string
         required: false
         default: |
-          type: specs.openrewrite.org/v1beta/recipe
-          name: org.openrewrite.recipes.OpenRewriteBestPractices
-          displayName: OpenRewrite best practices
-          description: Best practices for OpenRewrite recipe development.
-          recipeList:
-            - org.openrewrite.recipes.JavaRecipeBestPractices
-            - org.openrewrite.recipes.RecipeTestingBestPractices
           ---
-          type: specs.openrewrite.org/v1beta/recipe
-          name: org.openrewrite.recipes.JavaRecipeBestPractices
-          displayName: Java Recipe best practices
-          description: Best practices for Java recipe development.
-          preconditions:
-            - org.openrewrite.java.search.FindTypes:
-                fullyQualifiedTypeName: org.openrewrite.Recipe
-                checkAssignability: true
-          recipeList:
-            - org.openrewrite.java.recipes.ExecutionContextParameterName
-            - org.openrewrite.java.recipes.MissingOptionExample
-            - org.openrewrite.java.recipes.RecipeEqualsAndHashCodeCallSuper
-            - org.openrewrite.java.recipes.UseTreeRandomId
-          ---
-          type: specs.openrewrite.org/v1beta/recipe
-          name: org.openrewrite.recipes.RecipeTestingBestPractices
-          displayName: Recipe testing best practices
-          description: Best practices for testing recipes.
-          preconditions:
-            - org.openrewrite.java.search.FindTypes:
-                fullyQualifiedTypeName: org.openrewrite.test.RewriteTest
-                checkAssignability: true
-          recipeList:
-            - org.openrewrite.java.recipes.SelectRecipeExamples
-            - org.openrewrite.java.recipes.SourceSpecTextBlockIndentation
       init_gradle:
         description: The Gradle init script to apply to the PR
         type: string
@@ -62,6 +30,16 @@ on:
           }
           rootProject {
             plugins.apply(org.openrewrite.gradle.RewritePlugin)
+            dependencies {
+                rewrite("org.openrewrite.recipe:rewrite-recommendations:latest.release")
+            }
+            afterEvaluate {
+                if (repositories.isEmpty()) {
+                    repositories {
+                        mavenCentral()
+                    }
+                }
+            }
           }
 
 env:

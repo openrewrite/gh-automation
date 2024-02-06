@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Used by https://github.com/googleapis/code-suggester?tab=readme-ov-file#review-a-pull-request
-      ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACCESS_TOKEN: ${{ secrets.TEAM_MODERNE_ACTION_PAT }}
     steps:
       - uses: actions/checkout@v4
         with:

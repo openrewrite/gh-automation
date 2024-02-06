@@ -11,6 +11,13 @@ on:
           A GitHub PAT with `actions:read` permissions on the target repo.
           This is used to download the patch and the PR number from the triggering workflow.
           See https://docs.github.com/en/actions/reference/authentication-in-a-workflow#permissions-for-the-github_token
+      GH_PAT_PULL_REQUESTS_WRITE:
+        required: true
+        description: |
+          A GitHub PAT with `pull-requests:write` permissions on the target repo.
+          This is used to create code suggestion comments on the pull request for any code changes.
+          Alternatively could use `${{ secrets.GITHUB_TOKEN }}`, if 
+          See https://docs.github.com/en/actions/reference/authentication-in-a-workflow#permissions-for-the-github_token
 
 # https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
 # Since this pull request has write permissions on the target repo, we should **NOT** execute any untrusted code.
@@ -19,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Used by https://github.com/googleapis/code-suggester?tab=readme-ov-file#review-a-pull-request
-      ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACCESS_TOKEN: ${{ secrets.GH_PAT_PULL_REQUESTS_WRITE }}
     steps:
       - uses: actions/checkout@v4
         with:

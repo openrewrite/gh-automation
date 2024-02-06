@@ -16,7 +16,7 @@ on:
         description: |
           A GitHub PAT with `pull-requests:write` permissions on the target repo.
           This is used to create code suggestion comments on the pull request for any code changes.
-          Alternatively could use `${{ secrets.GITHUB_TOKEN }}`, if 
+          Alternatively could use `secrets.GITHUB_TOKEN`, which posts as `github-actions [bot]`.
           See https://docs.github.com/en/actions/reference/authentication-in-a-workflow#permissions-for-the-github_token
 
 # https://securitylab.github.com/research/github-actions-preventing-pwn-requests/

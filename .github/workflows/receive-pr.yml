@@ -31,14 +31,14 @@ on:
           rootProject {
             plugins.apply(org.openrewrite.gradle.RewritePlugin)
             dependencies {
-                rewrite("org.openrewrite.recipe:rewrite-recommendations:latest.release")
+                rewrite('org.openrewrite.recipe:rewrite-recommendations:latest.release')
             }
             afterEvaluate {
-                if (repositories.isEmpty()) {
-                    repositories {
-                        mavenCentral()
-                    }
+              if (repositories.isEmpty()) {
+                repositories {
+                  mavenCentral()
                 }
+              }
             }
           }
 

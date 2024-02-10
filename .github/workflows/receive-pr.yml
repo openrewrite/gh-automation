@@ -47,7 +47,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
+  GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon -Dorg.gradle.jvmargs=-Xmx2g
 
 # https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
 # Since this pull request receives untrusted code, we should **NOT** have any secrets in the environment.

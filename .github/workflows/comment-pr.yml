@@ -20,6 +20,7 @@ jobs:
     env:
       # GH API does not allow PAT for https://github.com/googleapis/code-suggester?tab=readme-ov-file#review-a-pull-request
       ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:

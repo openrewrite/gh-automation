@@ -54,6 +54,7 @@ env:
 jobs:
   upload-patch:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -96,7 +97,9 @@ jobs:
 
       # Capture the diff
       - name: Create patch
-        run: git diff > git-diff.patch
+        run: |
+          git diff > git-diff.patch
+          cat git-diff.patch
       - uses: actions/upload-artifact@v4
         with:
           name: patch

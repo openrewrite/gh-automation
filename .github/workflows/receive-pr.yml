@@ -42,10 +42,6 @@ on:
             }
           }
 
-concurrency:
-  group: '${{ github.workflow }} @ ${{ github.event.number }}'
-  cancel-in-progress: true
-
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon -Dorg.gradle.jvmargs=-Xmx2g
 

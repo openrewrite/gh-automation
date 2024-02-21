@@ -43,7 +43,7 @@ on:
           }
 
 concurrency:
-  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.ref }}'
+  group: '${{ github.workflow }} @ ${{ github.event.number }}'
   cancel-in-progress: true
 
 env:

@@ -61,7 +61,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: 'gradle'
 
       # Capture the PR number
       - name: Create pr_number.txt

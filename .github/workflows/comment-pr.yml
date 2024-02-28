@@ -3,14 +3,7 @@ name: comment-pr
 
 # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#using-data-from-the-triggering-workflow
 on:
-  workflow_call:
-    secrets:
-      GH_PAT_ACTIONS_READ:
-        required: true
-        description: |
-          A GitHub PAT with `actions:read` permissions on the target repo.
-          This is used to download the patch and the PR number from the triggering workflow.
-          See https://docs.github.com/en/actions/reference/authentication-in-a-workflow#permissions-for-the-github_token
+  workflow_call: {}
 
 # https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
 # Since this pull request has write permissions on the target repo, we should **NOT** execute any untrusted code.
@@ -31,7 +24,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: patch
-          github-token: ${{ secrets.GH_PAT_ACTIONS_READ }}
           run-id: ${{ github.event.workflow_run.id }}
       - name: Apply patch
         run: |
@@ -42,7 +34,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: pr_number
-          github-token: ${{ secrets.GH_PAT_ACTIONS_READ }}
           run-id: ${{ github.event.workflow_run.id }}
       - name: Read pr_number.txt
         run: |

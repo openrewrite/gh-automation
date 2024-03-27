@@ -1,0 +1,75 @@
+name: receive-pr-runner
+
+on:
+  workflow_call:
+    inputs:
+      recipe_id:
+        description: The OpenRewrite recipe ID to apply to the PR
+        type: string
+        required: false
+        default: org.openrewrite.staticanalysis.CommonStaticAnalysis
+      recipe_artifact:
+        description: The OpenRewrite recipe artifact that contains the recipe to apply to the pull request
+        type: string
+        required: false
+        default: org.openrewrite.recipe:rewrite-static-analysis:LATEST
+      artifactory_url:
+        description: Source for the recipe artifact
+        type: string
+        required: false
+        default: https://oss.sonatype.org/content/repositories/snapshots
+
+# Note: the following job was designed for use on public repositories.
+# Since this pull request receives untrusted code, we should **NOT** have any secrets in the environment.
+# @see https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+jobs:
+  receive-pr-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Moderne CLI
+        run: |
+          sudo apt-get install libxml2-utils
+          export LATEST_VERSION=$(curl -s --request GET --url "https://repo1.maven.org/maven2/io/moderne/moderne-cli/maven-metadata.xml" | xmllint --xpath 'string(/metadata/versioning/latest)' -)
+          curl -s --request GET --url "https://repo1.maven.org/maven2/io/moderne/moderne-cli/${LATEST_VERSION}/moderne-cli-${LATEST_VERSION}.jar" --output mod.jar
+
+      # Execute best practices recipe
+      - name: Apply OpenRewrite best practices
+        run: |
+          java -jar mod.jar config recipes artifacts artifactory edit ${{ inputs.artifactory_url }}
+          java -jar mod.jar config recipes jar install ${{ inputs.recipe_artifact }}
+          java -jar mod.jar build . --no-download
+          java -jar mod.jar run  . --recipe ${{ inputs.recipe_id }}
+          java -jar mod.jar git apply  . --last-recipe-run
+          mkdir -p dist
+          git diff -p > dist/git-diff.patch
+
+      - name: Create pr_number.txt
+        run: echo "${{ github.event.number }}" > dist/pr_number.txt
+
+      - name: Upload diff artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+      # Upload logs
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build
+          path: .moderne/build/
+          retention-days: 1

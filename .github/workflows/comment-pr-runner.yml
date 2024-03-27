@@ -1,0 +1,45 @@
+name: comment-pr-runner
+
+on:
+  workflow_call: {}
+
+# Note: This action has write permissions on the target repository so we should **NOT** execute any untrusted code.
+# @see https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+jobs:
+  comment-pr-runner:
+    runs-on: ubuntu-latest
+    env:
+      # GH API does not allow PAT for https://github.com/googleapis/code-suggester?tab=readme-ov-file#review-a-pull-request
+      ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{github.event.workflow_run.head_branch}}
+          repository: ${{github.event.workflow_run.head_repository.full_name}}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Apply patch
+        run: |
+          git apply dist/git-diff.patch --allow-empty
+
+      - name: Store PR number to env
+        run: |
+          PR_NUMBER=$(cat dist/pr_number.txt)
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+
+      - name: Clean-up dist
+        run: |
+          rm -rf dist/
+
+      - uses: googleapis/code-suggester@v4
+        with:
+          command: review
+          pull_number: ${{ env.PR_NUMBER }}
+          git_dir: "."

@@ -43,23 +43,23 @@ jobs:
       - name: publish-candidate
         if: contains(github.ref, '-rc.')
         run: |
-          ./gradlew
-          ${{ env.GRADLE_SWITCHES }}
-          -Preleasing
-          -Prelease.disableGitChecks=true
-          -Prelease.useLastTag=true
-          candidate
-          publish
+          ./gradlew \
+          ${{ env.GRADLE_SWITCHES }} \
+          -Preleasing \
+          -Prelease.disableGitChecks=true \
+          -Prelease.useLastTag=true \
+          candidate \
+          publish \
           closeAndReleaseSonatypeStagingRepository
 
       - name: publish-release
         if: (!contains(github.ref, '-rc.'))
         run: |
-          ./gradlew
-          ${{ env.GRADLE_SWITCHES }}
-          -Preleasing
-          -Prelease.disableGitChecks=true
-          -Prelease.useLastTag=true
-          final
-          publish
+          ./gradlew \
+          ${{ env.GRADLE_SWITCHES }} \
+          -Preleasing \
+          -Prelease.disableGitChecks=true \
+          -Prelease.useLastTag=true \
+          final \
+          publish \
           closeAndReleaseSonatypeStagingRepository

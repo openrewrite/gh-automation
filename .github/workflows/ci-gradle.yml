@@ -24,9 +24,9 @@ on:
       gradle_enterprise_cache_password:
         description: Value of the Gradle Enterprise Cache password to use.
         required: false
-      ossrh_username:
+      ossrh_username_1:
         required: false
-      ossrh_token:
+      ossrh_token_1:
         required: false
       ossrh_signing_key:
         required: false
@@ -69,7 +69,7 @@ jobs:
           (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
         env:
-          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
-          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username_1 }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token_1 }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}

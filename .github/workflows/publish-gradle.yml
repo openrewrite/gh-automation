@@ -7,9 +7,9 @@ on:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
         required: false
-      ossrh_username:
+      ossrh_username_1:
         required: true
-      ossrh_token:
+      ossrh_token_1:
         required: true
       ossrh_signing_key:
         required: true
@@ -18,8 +18,8 @@ on:
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
-  ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
-  ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
+  ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username_1 }}
+  ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token_1 }}
   ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
   ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
 

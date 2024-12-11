@@ -84,12 +84,24 @@ jobs:
       # Execute best practices recipe
       - name: Create temporary files
         run: |
-          echo "${{ inputs.rewrite_yml }}" > rewrite.yml
+          if [ -f rewrite.yml ]
+          then
+            touch rewrite.yml.keep;
+          else
+            echo "${{ inputs.rewrite_yml }}" > rewrite.yml;
+          fi
           echo "${{ inputs.init_gradle }}" > rewrite-init.gradle
       - name: Apply OpenRewrite best practices
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} rewriteRun --init-script rewrite-init.gradle -Drewrite.activeRecipe=${{ inputs.recipe }}
       - name: Remove temporary files
-        run: rm -f rewrite.yml rewrite-init.gradle
+        run: |
+          if [ -f rewrite.yml.keep ]
+          then
+            rm rewrite.yml.keep;
+          else
+            rm rewrite.yml;
+          fi
+          rm rewrite-init.gradle
 
       # Capture the diff
       - name: Create patch

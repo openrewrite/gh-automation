@@ -78,8 +78,8 @@ jobs:
           develocity-access-key: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
 
       # Apply license headers
-#      - name: Apply license headers
-#        run: ./gradlew ${{ env.GRADLE_SWITCHES }} licenseFormat
+      - name: Apply license headers
+        run: ./gradlew ${{ env.GRADLE_SWITCHES }} licenseFormat
 
       # Execute best practices recipe
       - name: Create temporary files

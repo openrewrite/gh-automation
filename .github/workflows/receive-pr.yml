@@ -31,7 +31,7 @@ on:
           rootProject {
             plugins.apply(org.openrewrite.gradle.RewritePlugin)
             dependencies {
-                rewrite('org.openrewrite.recipe:rewrite-recommendations:latest.integration')
+                rewrite('org.openrewrite.recipe:rewrite-rewrite:latest.integration')
             }
             afterEvaluate {
               if (repositories.isEmpty()) {

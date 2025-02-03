@@ -8,7 +8,7 @@ on:
         description: The OpenRewrite recipe to apply to the PR
         type: string
         required: false
-        default: org.openrewrite.recipes.OpenRewriteBestPractices
+        default: org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPractices
       rewrite_yml:
         description: The contents of the rewrite.yml file to apply to the PR
         type: string

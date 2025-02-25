@@ -9,6 +9,7 @@ on:
 # Since this pull request has write permissions on the target repo, we should **NOT** execute any untrusted code.
 jobs:
   post-suggestions:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     env:
       # GH API does not allow PAT for https://github.com/googleapis/code-suggester?tab=readme-ov-file#review-a-pull-request

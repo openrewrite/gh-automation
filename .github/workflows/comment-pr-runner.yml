@@ -38,7 +38,7 @@ jobs:
         run: |
           rm -rf dist/
 
-      - uses: googleapis/code-suggester@v4
+      - uses: googleapis/code-suggester@v5
         with:
           command: review
           pull_number: ${{ env.PR_NUMBER }}

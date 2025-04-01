@@ -78,6 +78,18 @@ jobs:
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
+
+      - name: debug-m2-location
+        run: |
+          echo "HOME"
+          realpath ~
+          ls -la ~
+          echo "/home/runner"
+          ls -la /home/runner
+          echo "/runner"
+          ls -la /runner
+          echo "/"
+          cd /; find . -name .m2
      
       - name: cache-m2
         uses: actions/cache/save@v4

@@ -88,8 +88,9 @@ jobs:
           ls -la /home/runner
           echo ".m2"
           ls -la /home/runner/.m2
-          echo ".m2/*"
-          ls -la /home/runner/.m2/repository/
+          cat /home/runner/.m2/settings.xml
+          cat /home/runner/.m2/toolchains.xml
+          
      
       - name: cache-m2
         uses: actions/cache/save@v4

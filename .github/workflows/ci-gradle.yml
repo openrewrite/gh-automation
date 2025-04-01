@@ -66,6 +66,7 @@ jobs:
         if: >
           inputs.publish_snapshots &&
           github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main' &&
           (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
         env:

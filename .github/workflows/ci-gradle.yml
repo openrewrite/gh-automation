@@ -80,7 +80,6 @@ jobs:
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
      
       - name: cache-m2
-        if: github.event_name == 'schedule'
         uses: actions/cache/save@v4
         with:
           # Using "Saving cache once and reusing in multiple workflows" strategy from

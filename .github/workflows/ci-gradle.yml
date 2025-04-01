@@ -73,3 +73,12 @@ jobs:
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
+     
+      - name: cache-m2
+        if: github.event_name == 'schedule'
+        uses: actions/cache/save@v4
+        with:
+          # Using "Saving cache once and reusing in multiple workflows" strategy from
+          # https://github.com/actions/cache/blob/main/caching-strategies.md#saving-cache-once-and-reusing-in-multiple-workflows
+          path: ~/.m2/repository
+          key: m2

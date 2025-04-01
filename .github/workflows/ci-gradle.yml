@@ -86,8 +86,6 @@ jobs:
           ls -la ~
           echo "/home/runner"
           ls -la /home/runner
-          echo "/"
-          cd /; find . -name .m2
           echo ".m2"
           ls -la /home/runner/.m2
           echo ".m2/*"

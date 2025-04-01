@@ -88,8 +88,9 @@ jobs:
           ls -la /home/runner
           echo ".m2"
           ls -la /home/runner/.m2
-          cat /home/runner/.m2/settings.xml
-          cat /home/runner/.m2/toolchains.xml
+          echo "mkdir"
+          mkdir /home/runner/.m2/repository
+          ls -la /home/runner/.m2
           
      
       - name: cache-m2

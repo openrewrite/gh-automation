@@ -85,6 +85,9 @@ jobs:
           echo "HOME"
           realpath ~
           ls -la ~
+          echo ".rewrite"
+          cd ~/.rewrite
+          ls -laR
           echo "/home/runner"
           ls -la /home/runner
           echo ".m2"

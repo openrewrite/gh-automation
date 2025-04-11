@@ -62,7 +62,7 @@ jobs:
       - name: build
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} build
 
-      - name: slackNotificationOfFailure:
+      - name: slackNotificationOfFailure
         if: failure()
         uses: rtCamp/action-slack-notify@v2.3.3
           env:

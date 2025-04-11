@@ -70,7 +70,7 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
           MSG_MINIMAL: actions url
-          SLACK_USERNAME: Github CI failure notification
+          SLACK_USERNAME: ${{ github.event.repository.name }} CI failure
           SLACK_COLOR: failure
 
       - name: publish-snapshots

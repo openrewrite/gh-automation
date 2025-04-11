@@ -32,6 +32,8 @@ on:
         required: false
       ossrh_signing_password:
         required: false
+      OPS_GITHUB_ACTIONS_WEBHOOK:
+        required: true
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon

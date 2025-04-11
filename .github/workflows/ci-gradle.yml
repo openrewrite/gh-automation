@@ -69,6 +69,9 @@ jobs:
         uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661
         env:
           SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
+          MSG_MINIMAL: actions url
+          SLACK_USERNAME: Github CI failure notification
+          SLACK_COLOR: failure
 
       - name: publish-snapshots
         if: >

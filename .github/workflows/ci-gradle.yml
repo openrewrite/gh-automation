@@ -72,6 +72,8 @@ jobs:
           MSG_MINIMAL: actions url
           SLACK_USERNAME: ${{ github.event.repository.name }} CI failure
           SLACK_COLOR: failure
+          SLACK_MESSAGE: ''
+          SLACK_FOOTER: ''
 
       - name: publish-snapshots
         if: >

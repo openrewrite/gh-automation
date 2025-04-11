@@ -65,8 +65,8 @@ jobs:
       - name: slackNotificationOfFailure
         if: failure()
         uses: rtCamp/action-slack-notify@v2.3.3
-          env:
-            SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
 
       - name: publish-snapshots
         if: >

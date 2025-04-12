@@ -1,0 +1,15 @@
+---
+name: stale
+
+on:
+  workflow_call:
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          stale-pr-message: 'This PR is stale because it has been open for 90 days with no activity. Remove stale label or comment or this will be closed in 7 days.'
+          days-before-stale: -1 # Do not close issues
+          days-before-pr-stale: 90

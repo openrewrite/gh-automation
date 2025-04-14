@@ -47,13 +47,18 @@ jobs:
         with:
           fetch-depth: 0
           show-progress: false
-      ########################
+
       - uses: actions/setup-java@v4.0.0
         with:
           distribution: temurin
           java-version: ${{ inputs.java_version }}
 
-      ########################
+      - name: restore-cache-m2
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: m2
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -74,3 +79,30 @@ jobs:
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
+
+      - name: debug-m2-location
+        run: |
+          echo "HOME"
+          realpath ~
+          ls -la ~
+          echo ".rewrite"
+          cd ~/.rewrite
+          ls -laR
+          echo "/home/runner"
+          ls -la /home/runner
+          echo ".m2"
+          ls -la /home/runner/.m2
+          echo "repository"
+          ls -la /home/runner/.m2/repository || echo FAIL
+          echo "mkdir"
+          mkdir -p /home/runner/.m2/repository
+          ls -la /home/runner/.m2
+          
+     
+      - name: cache-m2
+        uses: actions/cache/save@v4
+        with:
+          # Using "Saving cache once and reusing in multiple workflows" strategy from
+          # https://github.com/actions/cache/blob/main/caching-strategies.md#saving-cache-once-and-reusing-in-multiple-workflows
+          path: ~/.m2/repository
+          key: m2

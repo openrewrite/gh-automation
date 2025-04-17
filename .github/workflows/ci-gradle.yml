@@ -35,8 +35,6 @@ on:
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
-  GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.gradle_enterprise_cache_username }}
-  GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.gradle_enterprise_cache_password }}
 
 jobs:
   build:
@@ -58,6 +56,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
+          GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.gradle_enterprise_cache_username }}
+          GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.gradle_enterprise_cache_password }}
 
       - name: build
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} build
@@ -74,3 +74,5 @@ jobs:
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
+          GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.gradle_enterprise_cache_username }}
+          GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.gradle_enterprise_cache_password }}

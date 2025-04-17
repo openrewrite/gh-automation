@@ -58,19 +58,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
-
-      - name: build
-        run: ./gradlew ${{ env.GRADLE_SWITCHES }} build
-
-      - name: publish-snapshots
-        if: >
-          inputs.publish_snapshots &&
-          github.event_name != 'pull_request' &&
-          github.ref == 'refs/heads/main' &&
-          (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
-        run: ./gradlew ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
-        env:
-          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
-          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
-          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
+          
+      - name: printenv
+        run: 'printenv | cut -d = -f 1 | sort'

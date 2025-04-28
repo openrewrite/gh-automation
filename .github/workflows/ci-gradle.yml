@@ -33,7 +33,7 @@ on:
       ossrh_signing_password:
         required: false
       OPS_GITHUB_ACTIONS_WEBHOOK:
-        required: true
+        required: false
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
@@ -67,6 +67,7 @@ jobs:
       - name: slackNotificationOfFailure
         if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661
+        continue-on-error: true
         env:
           SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
           MSG_MINIMAL: actions url

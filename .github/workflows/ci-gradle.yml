@@ -47,11 +47,18 @@ jobs:
         with:
           fetch-depth: 0
           show-progress: false
+
       ########################
       - uses: actions/setup-java@v4.0.0
         with:
           distribution: temurin
           java-version: ${{ inputs.java_version }}
+
+      ########################
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
 
       ########################
       - name: Setup Gradle

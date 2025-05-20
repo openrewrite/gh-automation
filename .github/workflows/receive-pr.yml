@@ -8,13 +8,21 @@ on:
         description: The OpenRewrite recipe to apply to the PR
         type: string
         required: false
-        default: org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPractices
+        default: org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPracticesWithPrecondition
       rewrite_yml:
         description: The contents of the rewrite.yml file to apply to the PR
         type: string
         required: false
         default: |
-          ---
+          name: org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPracticesWithPrecondition
+          displayName: OpenRewrite Recipe best practices
+          description: Best practices for OpenRewrite recipe development.
+          preconditions:
+            # skip recipes for extracted examples as they are likely to contain code to migrate and therefore produce noise
+            - org.openrewrite.FindSourceFiles:
+                relativePath: '!(META-INF/rewrite/examples.yml)'
+          recipeList:
+            - org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPractices
       init_gradle:
         description: The Gradle init script to apply to the PR
         type: string

@@ -23,7 +23,7 @@ on:
                 relativePath: '!(META-INF/rewrite/examples.yml)'
           recipeList:
             - org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPractices
-  init_gradle:
+      init_gradle:
         description: The Gradle init script to apply to the PR
         type: string
         required: false

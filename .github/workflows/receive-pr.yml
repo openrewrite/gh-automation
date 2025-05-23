@@ -21,7 +21,7 @@ on:
           preconditions:
             # skip recipes for extracted examples as they are likely to contain code to migrate and therefore produce noise
             - org.openrewrite.FindSourceFiles:
-                relativePath: '!(META-INF/rewrite/examples.yml)'
+                filePattern: '!(**/META-INF/rewrite/examples.yml)'
           recipeList:
             - org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPractices
       init_gradle:

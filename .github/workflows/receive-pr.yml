@@ -14,6 +14,7 @@ on:
         type: string
         required: false
         default: |
+          type: specs.openrewrite.org/v1beta/recipe
           name: org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPracticesWithPrecondition
           displayName: OpenRewrite Recipe best practices
           description: Best practices for OpenRewrite recipe development.

@@ -60,7 +60,7 @@ jobs:
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} build
 
       - name: slackNotificationOfFailure
-        if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        if: (failure() || cancelled()) && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661
         continue-on-error: true
         env:

@@ -17,7 +17,7 @@ on:
         description: Source for the recipe artifact
         type: string
         required: false
-        default: https://oss.sonatype.org/content/repositories/snapshots
+        default: https://central.sonatype.com/repository/maven-snapshots
 
 # Note: the following job was designed for use on public repositories.
 # Since this pull request receives untrusted code, we should **NOT** have any secrets in the environment.

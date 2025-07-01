@@ -18,9 +18,9 @@ on:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
         required: false
-      ossrh_username:
+      sonatype_username:
         required: false
-      ossrh_token:
+      sonatype_token:
         required: false
       ossrh_signing_key:
         required: false

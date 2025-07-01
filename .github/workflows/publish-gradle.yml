@@ -43,6 +43,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
+          cache-disabled: true
           develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
 
       - name: publish-candidate

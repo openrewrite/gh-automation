@@ -78,8 +78,8 @@ jobs:
           (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
         env:
-          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.ossrh_username }}
-          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.ossrh_token }}
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_TOKEN }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
           ORG_GRADLE_PROJECT_nodeAuthToken: ${{ secrets.node_auth_token }}

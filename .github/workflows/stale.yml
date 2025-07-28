@@ -10,7 +10,13 @@ jobs:
     steps:
       - uses: actions/stale@v9
         with:
-          stale-pr-message: 'This PR is stale because it has been open for 90 days with no activity. Remove stale label or comment or this will be closed in 7 days.'
-          days-before-stale: -1 # Do not close issues
+          # When questions go unanswered for 60 days, we assume the reported has lost interest.
+          stale-issue-label: 'question'
+          stale-issue-message: 'This issue is stale because it has not had any activity for 60 days. Remove `question` label or comment or this will be closed in two weeks. Issues may be reopened when there is renewed interest.'
+          days-before-stale: 60
+          days-before-close: 14
+
+          # When PRs see no activity for 90 days, we assume the author has lost interest.
+          stale-pr-message: 'This PR is stale because it has been open for 90 days with no activity. Remove `stale` label or comment or this will be closed in two weeks. PRs may be reopened when there is renewed interest.'
           days-before-pr-stale: 90
           operations-per-run: 100

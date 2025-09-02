@@ -3,6 +3,11 @@ name: receive-pr-runner
 on:
   workflow_call:
     inputs:
+      java_version:
+        description: Java version for setup-java
+        type: string
+        required: false
+        default: 21
       recipe_id:
         description: The OpenRewrite recipe ID to apply to the PR
         type: string
@@ -35,7 +40,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: ${{ inputs.java_version }}
 
       - name: Install Moderne CLI
         run: |

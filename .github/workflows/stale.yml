@@ -8,7 +8,7 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v9
+      - uses: actions/stale@v10
         with:
           # When questions go unanswered for 60 days, we assume the reported has lost interest.
           stale-issue-label: 'question'

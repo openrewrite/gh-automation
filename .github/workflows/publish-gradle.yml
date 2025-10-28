@@ -8,7 +8,9 @@ on:
         description: Java version for setup-java
         type: string
         required: false
-        default: 25
+        default: |
+          21
+          25
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.

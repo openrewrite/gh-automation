@@ -8,7 +8,9 @@ on:
         description: Java version for setup-java
         type: string
         required: false
-        default: 25
+        default: |
+          21
+          25
       publish_snapshots:
         description: Whether to attempt publishing snapshots. When false, the workflow will only run build.
         type: boolean

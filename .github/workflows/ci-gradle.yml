@@ -9,8 +9,8 @@ on:
         type: string
         required: false
         default: |
-          21
           25
+          21
       publish_snapshots:
         description: Whether to attempt publishing snapshots. When false, the workflow will only run build.
         type: boolean

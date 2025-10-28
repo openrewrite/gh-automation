@@ -8,8 +8,8 @@ on:
         type: string
         required: false
         default: |
-          21
           25
+          21
       recipe_id:
         description: The OpenRewrite recipe ID to apply to the PR
         type: string

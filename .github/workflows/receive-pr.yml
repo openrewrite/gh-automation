@@ -9,8 +9,8 @@ on:
         type: string
         required: false
         default: |
-          21
           25
+          21
       recipe:
         description: The OpenRewrite recipe to apply to the PR
         type: string

@@ -8,7 +8,7 @@ on:
         description: Java version for setup-java
         type: string
         required: false
-        default: 21
+        default: 25
       recipe:
         description: The OpenRewrite recipe to apply to the PR
         type: string

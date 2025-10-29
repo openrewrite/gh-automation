@@ -7,9 +7,7 @@ on:
         description: Java version for setup-java
         type: string
         required: false
-        default: |
-          25
-          21
+        default: 21
       recipe_id:
         description: The OpenRewrite recipe ID to apply to the PR
         type: string

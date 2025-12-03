@@ -49,6 +49,7 @@ jobs:
           curl -s --request GET --url "https://repo1.maven.org/maven2/io/moderne/moderne-cli/${LATEST_VERSION}/moderne-cli-${LATEST_VERSION}.jar" --output mod.jar
 
       # Execute best practices recipe
+      # add `java -jar mod.jar config license edit ${{ vars.license_key }}` and the appropriate variable when running against private repos
       - name: Build and run recipe
         run: |
           java -jar mod.jar config recipes artifacts artifactory edit ${{ inputs.artifactory_url }}

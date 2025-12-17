@@ -14,6 +14,11 @@ on:
         type: boolean
         default: true
         required: false
+      rerun_tasks:
+        description: Whether to pass --rerun-tasks to Gradle to force re-execution of all tasks.
+        type: boolean
+        default: false
+        required: false
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
@@ -57,7 +62,7 @@ jobs:
           develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
 
       - name: build
-        run: ./gradlew ${{ env.GRADLE_SWITCHES }} build
+        run: ./gradlew ${{ env.GRADLE_SWITCHES }} ${{ inputs.rerun_tasks && '--rerun-tasks' || '' }} build
 
       - name: slackNotificationOfFailure
         if: (failure() || cancelled()) && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
@@ -76,7 +81,7 @@ jobs:
           github.event_name != 'pull_request' &&
           github.ref == 'refs/heads/main' &&
           (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
-        run: ./gradlew ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
+        run: ./gradlew ${{ env.GRADLE_SWITCHES }} ${{ inputs.rerun_tasks && '--rerun-tasks' || '' }} snapshot publish -PforceSigning -x test
         env:
           ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.sonatype_username }}
           ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.sonatype_token }}

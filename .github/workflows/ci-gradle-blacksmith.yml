@@ -4,6 +4,11 @@ name: ci-gradle
 on:
   workflow_call:
     inputs:
+      runs_on:
+        description: Runner label to use for the build job
+        type: string
+        required: false
+        default: blacksmith-4vcpu-ubuntu-2404
       java_version:
         description: Java version for setup-java
         type: string
@@ -41,7 +46,7 @@ env:
 
 jobs:
   build:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ${{ inputs.runs_on }}
     if: github.event_name != 'schedule' || github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc'
     steps:
       - uses: actions/checkout@v6

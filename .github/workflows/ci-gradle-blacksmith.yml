@@ -1,0 +1,85 @@
+---
+name: ci-gradle
+
+on:
+  workflow_call:
+    inputs:
+      java_version:
+        description: Java version for setup-java
+        type: string
+        required: false
+        default: 21
+      publish_snapshots:
+        description: Whether to attempt publishing snapshots. When false, the workflow will only run build.
+        type: boolean
+        default: true
+        required: false
+    secrets:
+      gradle_enterprise_access_key:
+        description: Value of the Gradle Enterprise access token to use.
+        required: false
+      sonatype_username:
+        required: false
+      sonatype_token:
+        required: false
+      ossrh_signing_key:
+        required: false
+      ossrh_signing_password:
+        required: false
+      OPS_GITHUB_ACTIONS_WEBHOOK:
+        required: false
+      node_auth_token:
+        required: false
+
+env:
+  GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
+
+jobs:
+  build:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    if: github.event_name != 'schedule' || github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      ########################
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java_version }}
+
+      ########################
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
+
+      - name: build
+        run: ./gradlew ${{ env.GRADLE_SWITCHES }} build
+
+      - name: slackNotificationOfFailure
+        if: (failure() || cancelled()) && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
+          MSG_MINIMAL: actions url
+          SLACK_USERNAME: ${{ github.event.repository.name }} CI failure
+          SLACK_COLOR: failure
+          SLACK_FOOTER: ''
+
+      - name: publish-snapshots
+        if: >
+          inputs.publish_snapshots &&
+          github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main' &&
+          (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        run: ./gradlew ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
+        env:
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.sonatype_username }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.sonatype_token }}
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
+          ORG_GRADLE_PROJECT_nodeAuthToken: ${{ secrets.node_auth_token }}

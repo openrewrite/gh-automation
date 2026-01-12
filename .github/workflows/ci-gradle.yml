@@ -30,6 +30,8 @@ on:
         required: false
       node_auth_token:
         required: false
+      pypi_token:
+        required: false
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
@@ -83,3 +85,4 @@ jobs:
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
           ORG_GRADLE_PROJECT_nodeAuthToken: ${{ secrets.node_auth_token }}
+          ORG_GRADLE_PROJECT_pypiToken: ${{ secrets.pypi_token }}

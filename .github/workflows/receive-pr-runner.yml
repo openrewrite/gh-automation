@@ -44,7 +44,8 @@ jobs:
 
       - name: Install Moderne CLI
         run: |
-          sudo apt-get install libxml2-utils
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils
           export LATEST_VERSION=$(curl -s --request GET --url "https://repo1.maven.org/maven2/io/moderne/moderne-cli/maven-metadata.xml" | xmllint --xpath 'string(/metadata/versioning/latest)' -)
           curl -s --request GET --url "https://repo1.maven.org/maven2/io/moderne/moderne-cli/${LATEST_VERSION}/moderne-cli-${LATEST_VERSION}.jar" --output mod.jar
 

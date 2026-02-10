@@ -53,6 +53,9 @@ jobs:
           java-version: ${{ inputs.java_version }}
 
       ########################
+      - uses: astral-sh/setup-uv@v7
+
+      ########################
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
         with:

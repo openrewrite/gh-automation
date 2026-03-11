@@ -14,6 +14,10 @@ on:
         type: boolean
         default: true
         required: false
+    outputs:
+      npm_version:
+        description: The npm package version determined during build
+        value: ${{ jobs.build.outputs.npm_version }}
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
@@ -42,6 +46,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     if: github.event_name != 'schedule' || github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc'
+    outputs:
+      npm_version: ${{ steps.npm-version.outputs.npm_version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -65,6 +71,15 @@ jobs:
 
       - name: build
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} build
+
+      - name: extract npm version
+        id: npm-version
+        if: always()
+        run: |
+          VERSION_FILE="rewrite-javascript/src/main/resources/META-INF/rewrite-javascript-version.txt"
+          if [ -f "$VERSION_FILE" ]; then
+            echo "npm_version=$(cat "$VERSION_FILE")" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: slackNotificationOfFailure
         if: (failure() || cancelled()) && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')

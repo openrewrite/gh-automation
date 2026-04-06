@@ -74,7 +74,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
           MSG_MINIMAL: true
           SLACK_MESSAGE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          SLACK_USERNAME: ${{ github.event.repository.name }} CI failure
+          SLACK_USERNAME: ${{ github.repository }} CI failure
           SLACK_COLOR: failure
           SLACK_FOOTER: ''
 

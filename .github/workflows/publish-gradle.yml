@@ -9,6 +9,10 @@ on:
         type: string
         required: false
         default: 21
+    outputs:
+      npm_version:
+        description: The npm package version determined during build
+        value: ${{ jobs.release.outputs.npm_version }}
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
@@ -42,6 +46,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    outputs:
+      npm_version: ${{ steps.npm-version.outputs.npm_version }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -82,3 +88,12 @@ jobs:
           final \
           publish \
           closeAndReleaseSonatypeStagingRepository
+
+      - name: extract npm version
+        id: npm-version
+        if: always()
+        run: |
+          VERSION_FILE="rewrite-javascript/src/main/resources/META-INF/rewrite-javascript-version.txt"
+          if [ -f "$VERSION_FILE" ]; then
+            echo "npm_version=$(cat "$VERSION_FILE")" >> "$GITHUB_OUTPUT"
+          fi

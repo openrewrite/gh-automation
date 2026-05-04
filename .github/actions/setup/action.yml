@@ -1,0 +1,36 @@
+---
+name: Set up Gradle build environment
+description: |
+  Checkout the repository (full history), install the requested JDK(s), set up
+  uv, and configure Gradle with optional Develocity access. Designed to be the
+  first step a Gradle-based job takes; the build / publish composite actions
+  in this repo assume this has run.
+
+inputs:
+  java_version:
+    description: Java version(s) to install (passed verbatim to actions/setup-java).
+    required: false
+    default: '21'
+  develocity_access_key:
+    description: Develocity / Gradle Enterprise access key, if any.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        show-progress: false
+
+    - uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java_version }}
+
+    - uses: astral-sh/setup-uv@v7
+
+    - uses: gradle/actions/setup-gradle@v5
+      with:
+        develocity-access-key: ${{ inputs.develocity_access_key }}

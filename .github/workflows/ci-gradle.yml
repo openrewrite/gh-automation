@@ -35,61 +35,38 @@ on:
       nuget_api_key:
         required: false
 
-env:
-  GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
-
 jobs:
   build:
     runs-on: ubuntu-latest
     if: github.event_name != 'schedule' || github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc'
     steps:
-      - uses: actions/checkout@v6
+      # Each step below is a thin call into a composite action under
+      # .github/actions/ in this repo. Consumers that need to inject custom
+      # setup (e.g. a Maven mirror) can bypass this reusable workflow and
+      # call those composite actions directly from their own job.
+      - uses: openrewrite/gh-automation/.github/actions/setup@main
         with:
-          fetch-depth: 0
-          show-progress: false
+          java_version: ${{ inputs.java_version }}
+          develocity_access_key: ${{ secrets.gradle_enterprise_access_key }}
 
-      ########################
-      - uses: actions/setup-java@v5
+      - uses: openrewrite/gh-automation/.github/actions/build@main
+
+      - if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        uses: openrewrite/gh-automation/.github/actions/slack-failure@main
         with:
-          distribution: temurin
-          java-version: ${{ inputs.java_version }}
+          webhook: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
 
-      ########################
-      - uses: astral-sh/setup-uv@v7
-
-      ########################
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
-        with:
-          develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
-
-      - name: build
-        run: ./gradlew ${{ env.GRADLE_SWITCHES }} build
-
-      - name: slackNotificationOfFailure
-        if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
-        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661
-        continue-on-error: true
-        env:
-          SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
-          MSG_MINIMAL: true
-          SLACK_MESSAGE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          SLACK_USERNAME: ${{ github.repository }} CI failure
-          SLACK_COLOR: failure
-          SLACK_FOOTER: ''
-
-      - name: publish-snapshots
-        if: >
+      - if: >
           inputs.publish_snapshots &&
           github.event_name != 'pull_request' &&
           github.ref == 'refs/heads/main' &&
           (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
-        run: ./gradlew ${{ env.GRADLE_SWITCHES }} snapshot publish -PforceSigning -x test
-        env:
-          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.sonatype_username }}
-          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.sonatype_token }}
-          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
-          ORG_GRADLE_PROJECT_nodeAuthToken: ${{ secrets.node_auth_token }}
-          ORG_GRADLE_PROJECT_pypiToken: ${{ secrets.pypi_token }}
-          ORG_GRADLE_PROJECT_nugetApiKey: ${{ secrets.nuget_api_key }}
+        uses: openrewrite/gh-automation/.github/actions/publish-snapshots@main
+        with:
+          sonatype_username: ${{ secrets.sonatype_username }}
+          sonatype_token: ${{ secrets.sonatype_token }}
+          ossrh_signing_key: ${{ secrets.ossrh_signing_key }}
+          ossrh_signing_password: ${{ secrets.ossrh_signing_password }}
+          node_auth_token: ${{ secrets.node_auth_token }}
+          pypi_token: ${{ secrets.pypi_token }}
+          nuget_api_key: ${{ secrets.nuget_api_key }}

@@ -1,0 +1,24 @@
+---
+name: Notify Slack on CI failure
+description: |
+  Post a CI-failure notification to a Slack webhook. The caller is responsible
+  for guarding this with an appropriate `if:` condition (typically
+  `failure() && github.event_name == 'schedule'`).
+
+inputs:
+  webhook:
+    description: Slack incoming webhook URL.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661
+      continue-on-error: true
+      env:
+        SLACK_WEBHOOK: ${{ inputs.webhook }}
+        MSG_MINIMAL: true
+        SLACK_MESSAGE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        SLACK_USERNAME: ${{ github.repository }} CI failure
+        SLACK_COLOR: failure
+        SLACK_FOOTER: ''

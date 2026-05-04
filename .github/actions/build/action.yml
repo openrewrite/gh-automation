@@ -1,0 +1,19 @@
+---
+name: Run Gradle build
+description: Run `./gradlew build` with the standard CI switches.
+
+inputs:
+  switches:
+    description: Gradle command-line switches.
+    required: false
+    default: --console=plain --info --stacktrace --warning-mode=all --no-daemon
+  tasks:
+    description: Gradle tasks to invoke.
+    required: false
+    default: build
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: ./gradlew ${{ inputs.switches }} ${{ inputs.tasks }}

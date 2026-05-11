@@ -69,8 +69,29 @@ jobs:
         with:
           develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
 
+      ########################
+      - name: Write ~/.m2/settings.xml for authenticated Maven Central
+        if: secrets.sonatype_username != '' && secrets.sonatype_token != ''
+        run: |
+          mkdir -p ~/.m2
+          umask 077
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${env.SONATYPE_USERNAME}</username>
+                <password>${env.SONATYPE_TOKEN}</password>
+              </server>
+            </servers>
+          </settings>
+          XML
+
       - name: build
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} ${{ inputs.rerun_tasks && '--rerun-tasks' || '' }} build
+        env:
+          SONATYPE_USERNAME: ${{ secrets.sonatype_username }}
+          SONATYPE_TOKEN: ${{ secrets.sonatype_token }}
 
       - name: slackNotificationOfFailure
         if: (failure() || cancelled()) && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')

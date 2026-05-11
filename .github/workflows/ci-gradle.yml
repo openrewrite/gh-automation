@@ -48,8 +48,13 @@ jobs:
         with:
           java_version: ${{ inputs.java_version }}
           develocity_access_key: ${{ secrets.gradle_enterprise_access_key }}
+          sonatype_username: ${{ secrets.sonatype_username }}
+          sonatype_token: ${{ secrets.sonatype_token }}
 
       - uses: openrewrite/gh-automation/.github/actions/build@main
+        env:
+          SONATYPE_USERNAME: ${{ secrets.sonatype_username }}
+          SONATYPE_TOKEN: ${{ secrets.sonatype_token }}
 
       - if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         uses: openrewrite/gh-automation/.github/actions/slack-failure@main

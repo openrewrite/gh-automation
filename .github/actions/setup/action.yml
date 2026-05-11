@@ -15,6 +15,19 @@ inputs:
     description: Develocity / Gradle Enterprise access key, if any.
     required: false
     default: ''
+  sonatype_username:
+    description: |
+      Sonatype Central username. When set together with sonatype_token, ~/.m2/settings.xml
+      is written so that code under test which honors Maven settings (e.g. rewrite-maven's
+      MavenPomDownloader) authenticates to Maven Central. Resolved by rewrite at test time
+      from the SONATYPE_USERNAME / SONATYPE_TOKEN environment variables, so callers must
+      also expose those to the step that runs the tests.
+    required: false
+    default: ''
+  sonatype_token:
+    description: Sonatype Central token. See sonatype_username.
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -34,3 +47,21 @@ runs:
     - uses: gradle/actions/setup-gradle@v5
       with:
         develocity-access-key: ${{ inputs.develocity_access_key }}
+
+    - name: Write ~/.m2/settings.xml for authenticated Maven Central
+      if: inputs.sonatype_username != '' && inputs.sonatype_token != ''
+      shell: bash
+      run: |
+        mkdir -p ~/.m2
+        umask 077
+        cat > ~/.m2/settings.xml <<'XML'
+        <settings>
+          <servers>
+            <server>
+              <id>central</id>
+              <username>${env.SONATYPE_USERNAME}</username>
+              <password>${env.SONATYPE_TOKEN}</password>
+            </server>
+          </servers>
+        </settings>
+        XML

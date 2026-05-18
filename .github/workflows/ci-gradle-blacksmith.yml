@@ -40,6 +40,18 @@ on:
         required: false
       node_auth_token:
         required: false
+      artifactory_username:
+        description: Username for artifactory.moderne.ninja, used by the Maven mirror.
+        required: false
+      artifactory_password:
+        description: Password for artifactory.moderne.ninja, used by the Maven mirror.
+        required: false
+      ast_publish_username:
+        description: Username for the Gradle mirror (REWRITE_GRADLE_MIRROR_USERNAME).
+        required: false
+      ast_publish_password:
+        description: Password for the Gradle mirror (REWRITE_GRADLE_MIRROR_PASSWORD).
+        required: false
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
@@ -69,8 +81,19 @@ jobs:
         with:
           develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
 
+      # Route Maven resolution through Moderne's Artifactory cache to avoid
+      # Maven Central rate-limiting (HTTP 429) under parallel test load.
+      - uses: s4u/maven-settings-action@v4.0.0
+        with:
+          mirrors: '[{"id": "moderne-cache", "name": "Moderne Artifactory Cache", "mirrorOf": "*", "url": "https://artifactory.moderne.ninja/artifactory/moderne-cache-3/"}]'
+          servers: ${{ secrets.artifactory_username != '' && format('[{{"id":"moderne-cache","username":"{0}","password":"{1}"}}]', secrets.artifactory_username, secrets.artifactory_password) || '[]' }}
+
       - name: build
         run: ./gradlew ${{ env.GRADLE_SWITCHES }} ${{ inputs.rerun_tasks && '--rerun-tasks' || '' }} build
+        env:
+          REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
+          REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.ast_publish_username }}
+          REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.ast_publish_password }}
 
       - name: slackNotificationOfFailure
         if: (failure() || cancelled()) && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')

@@ -28,16 +28,10 @@ on:
       nuget_api_key:
         required: false
       artifactory_username:
-        description: Username for artifactory.moderne.ninja, used by the Maven mirror.
+        description: Username for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
         required: false
       artifactory_password:
-        description: Password for artifactory.moderne.ninja, used by the Maven mirror.
-        required: false
-      ast_publish_username:
-        description: Username for the Gradle mirror (REWRITE_GRADLE_MIRROR_USERNAME).
-        required: false
-      ast_publish_password:
-        description: Password for the Gradle mirror (REWRITE_GRADLE_MIRROR_PASSWORD).
+        description: Password for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
         required: false
 
 env:
@@ -50,8 +44,8 @@ env:
   ORG_GRADLE_PROJECT_pypiToken: ${{ secrets.pypi_token }}
   ORG_GRADLE_PROJECT_nugetApiKey: ${{ secrets.nuget_api_key }}
   REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
-  REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.ast_publish_username }}
-  REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.ast_publish_password }}
+  REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
+  REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
 
 jobs:
   release:

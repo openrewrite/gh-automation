@@ -27,6 +27,12 @@ on:
         required: false
       nuget_api_key:
         required: false
+      artifactory_username:
+        description: Username for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
+        required: false
+      artifactory_password:
+        description: Password for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
+        required: false
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
@@ -37,6 +43,9 @@ env:
   ORG_GRADLE_PROJECT_nodeAuthToken: ${{ secrets.node_auth_token }}
   ORG_GRADLE_PROJECT_pypiToken: ${{ secrets.pypi_token }}
   ORG_GRADLE_PROJECT_nugetApiKey: ${{ secrets.nuget_api_key }}
+  REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
+  REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
+  REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
 
 jobs:
   release:
@@ -58,6 +67,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
         with:
           develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
+
+      # Route Maven resolution through Moderne's Artifactory cache to avoid
+      # Maven Central rate-limiting (HTTP 429) under parallel test load.
+      - uses: s4u/maven-settings-action@v4.0.0
+        with:
+          mirrors: '[{"id": "moderne-cache", "name": "Moderne Artifactory Cache", "mirrorOf": "*", "url": "https://artifactory.moderne.ninja/artifactory/moderne-cache-3/"}]'
+          servers: ${{ secrets.artifactory_username != '' && format('[{{"id":"moderne-cache","username":"{0}","password":"{1}"}}]', secrets.artifactory_username, secrets.artifactory_password) || '[]' }}
 
       - name: publish-candidate
         if: contains(github.ref, '-rc.')

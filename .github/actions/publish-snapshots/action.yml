@@ -1,8 +1,12 @@
 ---
 name: Publish snapshots
 description: |
-  Run `./gradlew snapshot publish -PforceSigning -x test` with Sonatype and
-  signing credentials wired in via Gradle project properties.
+  Run `./gradlew --refresh-dependencies snapshot publish -PforceSigning -x test`
+  with Sonatype and signing credentials wired in via Gradle project properties.
+  `--refresh-dependencies` is required to clear Gradle's module-to-repository
+  cache; without it Gradle can keep resolving `latest.integration` against
+  Maven Central only (skipping the Sonatype snapshot repo) once a stale mapping
+  has been restored via gradle/actions cache fallback.
 
 inputs:
   switches:
@@ -35,7 +39,7 @@ runs:
   using: composite
   steps:
     - shell: bash
-      run: ./gradlew ${{ inputs.switches }} snapshot publish -PforceSigning -x test
+      run: ./gradlew ${{ inputs.switches }} --refresh-dependencies snapshot publish -PforceSigning -x test
       env:
         ORG_GRADLE_PROJECT_sonatypeUsername: ${{ inputs.sonatype_username }}
         ORG_GRADLE_PROJECT_sonatypePassword: ${{ inputs.sonatype_token }}

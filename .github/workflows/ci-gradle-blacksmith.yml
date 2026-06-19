@@ -55,7 +55,7 @@ jobs:
     runs-on: ${{ inputs.runs_on }}
     if: github.event_name != 'schedule' || github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           show-progress: false

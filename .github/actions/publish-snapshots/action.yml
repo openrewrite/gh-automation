@@ -48,3 +48,13 @@ runs:
         ORG_GRADLE_PROJECT_nodeAuthToken: ${{ inputs.node_auth_token }}
         ORG_GRADLE_PROJECT_pypiToken: ${{ inputs.pypi_token }}
         ORG_GRADLE_PROJECT_nugetApiKey: ${{ inputs.nuget_api_key }}
+
+    # A build may record the exact snapshot version of an artifact it just deployed
+    # (e.g. rewrite-javascript writes build/npm/publishedVersion.txt) so a decoupled
+    # downstream publisher can mirror it. Generic and a no-op when no such file exists.
+    - uses: actions/upload-artifact@v4
+      with:
+        name: published-snapshot-version
+        path: '**/build/npm/publishedVersion.txt'
+        if-no-files-found: ignore
+        retention-days: 7

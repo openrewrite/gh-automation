@@ -52,7 +52,7 @@ runs:
     # A build may record the exact snapshot version of an artifact it just deployed
     # (e.g. rewrite-javascript writes build/npm/publishedVersion.txt) so a decoupled
     # downstream publisher can mirror it. Generic and a no-op when no such file exists.
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: published-snapshot-version
         path: '**/build/npm/publishedVersion.txt'

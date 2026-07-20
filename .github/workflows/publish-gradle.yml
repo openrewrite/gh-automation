@@ -33,6 +33,12 @@ on:
       artifactory_password:
         description: Password for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
         required: false
+      cgp_aws_access_key_id:
+        description: AWS access key id for publishing artifacts to the Code Genome Project.
+        required: false
+      cgp_aws_secret_access_key:
+        description: AWS secret access key for publishing artifacts to the Code Genome Project.
+        required: false
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
@@ -46,6 +52,11 @@ env:
   REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
   REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
   REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
+  # Publish releases to the Code Genome Project. Empty when a repo has not forwarded the
+  # secret, which leaves the org.openrewrite.build.publish-cgp convention plugin inert.
+  AWS_ACCESS_KEY_ID: ${{ secrets.cgp_aws_access_key_id }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.cgp_aws_secret_access_key }}
+  AWS_REGION: us-west-2
 
 jobs:
   release:

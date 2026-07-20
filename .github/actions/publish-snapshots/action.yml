@@ -34,6 +34,14 @@ inputs:
   nuget_api_key:
     required: false
     default: ''
+  cgp_aws_access_key_id:
+    description: AWS access key id for publishing snapshots to the Code Genome Project.
+    required: false
+    default: ''
+  cgp_aws_secret_access_key:
+    description: AWS secret access key for publishing snapshots to the Code Genome Project.
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -48,6 +56,11 @@ runs:
         ORG_GRADLE_PROJECT_nodeAuthToken: ${{ inputs.node_auth_token }}
         ORG_GRADLE_PROJECT_pypiToken: ${{ inputs.pypi_token }}
         ORG_GRADLE_PROJECT_nugetApiKey: ${{ inputs.nuget_api_key }}
+        # Publish snapshots to the Code Genome Project. Empty when a repo has not forwarded the
+        # secret, which leaves the org.openrewrite.build.publish-cgp convention plugin inert.
+        AWS_ACCESS_KEY_ID: ${{ inputs.cgp_aws_access_key_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.cgp_aws_secret_access_key }}
+        AWS_REGION: us-west-2
 
     # A build may record the exact snapshot version of an artifact it just deployed
     # (e.g. rewrite-javascript writes build/npm/publishedVersion.txt) so a decoupled

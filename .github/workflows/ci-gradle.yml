@@ -40,6 +40,10 @@ on:
       artifactory_password:
         description: Password for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
         required: false
+      cgp_aws_access_key_id:
+        required: false
+      cgp_aws_secret_access_key:
+        required: false
 
 jobs:
   build:
@@ -83,3 +87,5 @@ jobs:
           node_auth_token: ${{ secrets.node_auth_token }}
           pypi_token: ${{ secrets.pypi_token }}
           nuget_api_key: ${{ secrets.nuget_api_key }}
+          cgp_aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
+          cgp_aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}

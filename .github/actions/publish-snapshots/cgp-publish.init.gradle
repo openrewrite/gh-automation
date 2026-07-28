@@ -1,0 +1,26 @@
+// Injected via --init-script by the publish-snapshots action so a repo's `publish` also pushes
+// to the Code Genome Project's S3-backed Maven repo. Inert unless the CGP AWS credentials reached
+// this build — they are absent on forks and on repos that never forwarded the org secret.
+import org.gradle.api.credentials.AwsCredentials
+
+def cgpAccessKey = System.getenv("AWS_ACCESS_KEY_ID")
+def cgpSecretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+
+if (cgpAccessKey && cgpSecretKey) {
+    gradle.allprojects { project ->
+        project.pluginManager.withPlugin("maven-publish") {
+            project.publishing {
+                repositories {
+                    maven {
+                        name = "codeGenomeProject"
+                        url = "s3://codegenome-artifacts/maven"
+                        credentials(AwsCredentials) {
+                            accessKey = cgpAccessKey
+                            secretKey = cgpSecretKey
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -8,6 +8,9 @@ description: |
   Maven Central only (skipping the Sonatype snapshot repo) once a stale mapping
   has been restored via gradle/actions cache fallback.
 
+  When the CGP AWS credentials are forwarded, an injected init script also publishes
+  each snapshot to the Code Genome Project's S3-backed Maven repo.
+
 inputs:
   switches:
     description: Gradle command-line switches.
@@ -47,7 +50,14 @@ runs:
   using: composite
   steps:
     - shell: bash
-      run: ./gradlew ${{ inputs.switches }} --refresh-dependencies snapshot publish -PforceSigning -x test
+      # --init-script adds the Code Genome Project S3 repo as a second publish target (inert
+      # without the CGP creds); the s3.endpoint override points Gradle at the bucket's region so
+      # snapshot PUTs sign correctly instead of 301-ing off the us-east-1 global endpoint.
+      run: >
+        ./gradlew ${{ inputs.switches }}
+        --refresh-dependencies snapshot publish -PforceSigning -x test
+        --init-script "${{ github.action_path }}/cgp-publish.init.gradle"
+        -Dorg.gradle.s3.endpoint=https://s3.us-west-2.amazonaws.com
       env:
         ORG_GRADLE_PROJECT_sonatypeUsername: ${{ inputs.sonatype_username }}
         ORG_GRADLE_PROJECT_sonatypePassword: ${{ inputs.sonatype_token }}
@@ -56,8 +66,8 @@ runs:
         ORG_GRADLE_PROJECT_nodeAuthToken: ${{ inputs.node_auth_token }}
         ORG_GRADLE_PROJECT_pypiToken: ${{ inputs.pypi_token }}
         ORG_GRADLE_PROJECT_nugetApiKey: ${{ inputs.nuget_api_key }}
-        # Publish snapshots to the Code Genome Project. Empty when a repo has not forwarded the
-        # secret, which leaves the org.openrewrite.build.publish-cgp convention plugin inert.
+        # Read by cgp-publish.init.gradle to authenticate the Code Genome Project S3 repo. Empty
+        # when a repo has not forwarded the secret, which leaves that init script inert.
         AWS_ACCESS_KEY_ID: ${{ inputs.cgp_aws_access_key_id }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.cgp_aws_secret_access_key }}
         AWS_REGION: us-west-2

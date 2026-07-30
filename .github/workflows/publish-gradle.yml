@@ -39,6 +39,12 @@ on:
       cgp_aws_secret_access_key:
         description: AWS secret access key for publishing artifacts to the Code Genome Project.
         required: false
+      cgp_artifacts_maven_username:
+        description: Username for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
+        required: false
+      cgp_artifacts_maven_token:
+        description: Token for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
+        required: false
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
@@ -61,6 +67,10 @@ env:
   # deprecation banner with a stack trace on every upload. Drop once Gradle ships
   # https://github.com/gradle/gradle/pull/29686 (milestone 9.8.0).
   AWS_JAVA_V1_DISABLE_DEPRECATION_ANNOUNCEMENT: true
+  # Resolve org.openrewrite and io.moderne dependencies from the Code Genome Project. Empty when a
+  # repo has not forwarded the secret, which leaves the recipe-repositories convention plugin inert.
+  ORG_GRADLE_PROJECT_codegenomeUsername: ${{ secrets.cgp_artifacts_maven_username }}
+  ORG_GRADLE_PROJECT_codegenomePassword: ${{ secrets.cgp_artifacts_maven_token }}
 
 jobs:
   release:

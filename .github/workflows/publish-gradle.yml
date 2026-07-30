@@ -57,6 +57,10 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.cgp_aws_access_key_id }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.cgp_aws_secret_access_key }}
   AWS_REGION: us-west-2
+  # Gradle's own s3:// transport still bundles AWS SDK for Java 1.x, which prints a
+  # deprecation banner with a stack trace on every upload. Drop once Gradle ships
+  # https://github.com/gradle/gradle/pull/29686 (milestone 9.8.0).
+  AWS_JAVA_V1_DISABLE_DEPRECATION_ANNOUNCEMENT: true
 
 jobs:
   release:

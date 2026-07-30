@@ -44,6 +44,18 @@ on:
         required: false
       cgp_aws_secret_access_key:
         required: false
+      cgp_artifacts_maven_username:
+        description: Username for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
+        required: false
+      cgp_artifacts_maven_token:
+        description: Token for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
+        required: false
+
+# Resolve org.openrewrite and io.moderne dependencies from the Code Genome Project. Empty when a
+# repo has not forwarded the secret, which leaves the recipe-repositories convention plugin inert.
+env:
+  ORG_GRADLE_PROJECT_codegenomeUsername: ${{ secrets.cgp_artifacts_maven_username }}
+  ORG_GRADLE_PROJECT_codegenomePassword: ${{ secrets.cgp_artifacts_maven_token }}
 
 jobs:
   build:

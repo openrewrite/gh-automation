@@ -12,7 +12,7 @@ inputs:
   switches:
     description: Gradle command-line switches.
     required: false
-    default: --console=plain --info --stacktrace --warning-mode=all --no-daemon
+    default: --console=plain --info --stacktrace --warning-mode=all --no-daemon --build-cache
   sonatype_username:
     required: false
     default: ''

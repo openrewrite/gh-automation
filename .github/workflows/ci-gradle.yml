@@ -14,6 +14,24 @@ on:
         type: boolean
         default: true
         required: false
+      # Non-Maven packages the Gradle publish just built, to be mirrored into the Code Genome
+      # Project package repositories. Empty (the default) means the mirror step does not run at
+      # all, so a repo that publishes nothing but jars is completely unaffected — the CGP Maven
+      # dual-publish it may already do is a separate mechanism (the publish-cgp convention
+      # plugin, driven by the cgp_aws_* secrets). npm deliberately has no input here: the npm
+      # tarball's dist-tag is computed in each repo's own npm-publish.yml, in the same step that
+      # decides `npm publish --tag`, and sourcing the pointer from anywhere else would let the
+      # two registries disagree.
+      cgp_pypi_artifacts:
+        description: Globs naming the wheels/sdists to mirror, e.g. `rewrite-python/rewrite/dist/*`.
+        type: string
+        required: false
+        default: ''
+      cgp_nuget_artifacts:
+        description: Globs naming the .nupkg files to mirror, e.g. `rewrite-csharp/csharp/dist/*.nupkg`.
+        type: string
+        required: false
+        default: ''
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
@@ -101,3 +119,33 @@ jobs:
           nuget_api_key: ${{ secrets.nuget_api_key }}
           cgp_aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
           cgp_aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
+
+      # Mirror the PyPI/NuGet artifacts the step above just published into the Code Genome
+      # Project package repositories. The publish guard is repeated verbatim rather than
+      # factored out, so nothing about the existing step's behavior can shift. The action is
+      # inert without cgp_aws_access_key_id anyway, which is the real safety net.
+      - if: >
+          inputs.cgp_pypi_artifacts != '' &&
+          inputs.publish_snapshots &&
+          github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main' &&
+          (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
+        with:
+          ecosystem: pypi
+          artifacts: ${{ inputs.cgp_pypi_artifacts }}
+          aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
+          aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
+
+      - if: >
+          inputs.cgp_nuget_artifacts != '' &&
+          inputs.publish_snapshots &&
+          github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main' &&
+          (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
+        with:
+          ecosystem: nuget
+          artifacts: ${{ inputs.cgp_nuget_artifacts }}
+          aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
+          aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}

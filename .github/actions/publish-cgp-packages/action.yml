@@ -7,9 +7,13 @@ description: |
   published to. Nothing is built here; point `artifacts` at what the publish step already
   produced and run this after it.
 
+  Only new versions come through here. Everything already on npmjs / PyPI / nuget.org was
+  ingested in one pass by `scripts/sync-{npm,pypi,nuget}.sh` in the codegenomeproject repo,
+  exactly as the Maven artifacts were, so this action never has to reconstruct history.
+
   Four properties are load-bearing. They are the same ones `scripts/lib/sync-packages.sh` in the
-  codegenomeproject repo enforces for the backfill, so a version published by CI and a version
-  mirrored by the backfill land as the same tree:
+  codegenomeproject repo enforces for that bulk sync, so a version published by CI and a version
+  ingested by the sync scripts land as the same tree:
 
     1. **Inert without credentials.** An empty `aws_access_key_id` logs one line and exits 0, so
        forks, pull requests and repos that have not been granted the secret never touch S3. This
@@ -37,9 +41,8 @@ description: |
        `aws s3api put-object` and not `aws s3 cp`, which has no `--tagging` (verified on
        aws-cli 2.34.34).
 
-  npm additionally writes the `dist-tags/{tag}` pointer, and writes it **last** — a pointer must
-  never name bytes that are not in the bucket — and writes it even when the version was skipped,
-  since a skipped version is exactly the case where the pointer is the thing that is missing.
+  npm additionally writes the `dist-tags/{tag}` pointer, and writes it **last**, once the bytes
+  it names are in the bucket.
 
   Requires `aws` (preinstalled on GitHub-hosted runners), `jq` for npm and `python3` for the
   PyPI/NuGet archive reads. All three ship on the `ubuntu-*` images.
@@ -82,9 +85,9 @@ inputs:
     default: ''
   dist_tag:
     description: |
-      npm only — the dist-tag pointer to write. It must come from the same variable the
-      `npm publish --tag` call uses, so CGP and npmjs are provably consistent. Empty writes no
-      pointer.
+      npm only — the dist-tag pointer to write: `next` for a snapshot or an `-rc.` tag, `latest`
+      for a plain `v<x.y.z>` release. That is the rule each repo's `npm publish --tag` applies,
+      so CGP and npmjs cannot disagree about what `latest`/`next` mean. Empty writes no pointer.
     required: false
     default: ''
   dry_run:
@@ -191,8 +194,8 @@ runs:
         }
 
         # Rule 3: one HEAD of the version's PRIMARY archive decides the whole version directory.
-        # head-object rather than the backfill's one-list-per-package, because a publish run has
-        # a handful of artifacts and not the thousands a backfill walks.
+        # head-object rather than the sync scripts' one-list-per-package, because a publish run
+        # has a handful of artifacts and not the thousands a bulk sync walks.
         mirrored() {
           aws s3api head-object --bucket "$BUCKET" --key "$1" --region "$AWS_REGION" \
             >/dev/null 2>&1
@@ -257,29 +260,28 @@ runs:
 
           if mirrored "$key"; then
             log "   skip $version — already in the bucket"
-          else
-            put_file "$tgz" "$key" application/gzip "$kind"
-            # Sidecar = the published manifest plus the `dist` block npmjs would have added,
-            # computed from the exact bytes just uploaded. dist.tarball is deliberately absent:
-            # the gateway renders a stable CGP URL there, and a stored npmjs URL would send
-            # every client straight back to npmjs. Same shape sync-npm.sh stores for backfilled
-            # versions, so a packument reads identically whichever path produced the version.
-            sha1=$(shasum -a 1 "$tgz" | awk '{print $1}')
-            sha512=""
-            if command -v openssl >/dev/null 2>&1; then
-              sha512="sha512-$(openssl dgst -sha512 -binary "$tgz" | openssl base64 -A)"
-            fi
-            put_text "$(jq -c --arg shasum "$sha1" --arg integrity "$sha512" '
-                          del(.dist.tarball)
-                          | .dist.shasum = $shasum
-                          | if $integrity == "" then . else .dist.integrity = $integrity end
-                        ' <<< "$manifest")" "$sidecar_key" application/json "$kind"
+            return 0
           fi
 
-          # Pointer LAST, and written even for a skipped version — a first rollout, where the
-          # version is already on npmjs and therefore may already be in the bucket, is exactly
-          # when the pointer is the thing that is missing. Always untagged: a lifecycle rule
-          # must never reclaim a pointer.
+          put_file "$tgz" "$key" application/gzip "$kind"
+          # Sidecar = the published manifest plus the `dist` block npmjs would have added,
+          # computed from the exact bytes just uploaded. dist.tarball is deliberately absent:
+          # the gateway renders a stable CGP URL there, and a stored npmjs URL would send every
+          # client straight back to npmjs. Same shape sync-npm.sh stores for the versions it
+          # ingests, so a packument reads identically whichever path produced the version.
+          sha1=$(shasum -a 1 "$tgz" | awk '{print $1}')
+          sha512=""
+          if command -v openssl >/dev/null 2>&1; then
+            sha512="sha512-$(openssl dgst -sha512 -binary "$tgz" | openssl base64 -A)"
+          fi
+          put_text "$(jq -c --arg shasum "$sha1" --arg integrity "$sha512" '
+                        del(.dist.tarball)
+                        | .dist.shasum = $shasum
+                        | if $integrity == "" then . else .dist.integrity = $integrity end
+                      ' <<< "$manifest")" "$sidecar_key" application/json "$kind"
+
+          # Pointer LAST, so it can only ever name bytes that are already in the bucket. Always
+          # untagged: a lifecycle rule must never reclaim a pointer.
           if [[ -z "$DIST_TAG" ]]; then
             log "   no dist_tag given — leaving dist-tags/ alone"
           else

@@ -2,50 +2,12 @@
 name: Publish packages to the Code Genome Project
 description: |
   Mirror already-built npm / PyPI / NuGet artifacts into the Code Genome Project package
-  repositories — `s3://codegenome-artifacts/{ecosystem}/…`, served by
-  `artifacts.codegenomeproject.org` — alongside the public registry the very same bytes are
-  published to. Nothing is built here; point `artifacts` at what the publish step already
-  produced and run this after it.
+  repositories (`s3://codegenome-artifacts/{ecosystem}/…`), alongside the public registry the
+  same bytes are published to. Nothing is built here — point `artifacts` at what the publish
+  step already produced and run this after it. An empty `aws_access_key_id` makes the whole
+  action a no-op, so the step can sit unconditionally in a workflow and forks stay safe.
 
-  Only new versions come through here. Everything already on npmjs / PyPI / nuget.org was
-  ingested in one pass by `scripts/sync-{npm,pypi,nuget}.sh` in the codegenomeproject repo,
-  exactly as the Maven artifacts were, so this action never has to reconstruct history.
-
-  Four properties are load-bearing. They are the same ones `scripts/lib/sync-packages.sh` in the
-  codegenomeproject repo enforces for that bulk sync, so a version published by CI and a version
-  ingested by the sync scripts land as the same tree:
-
-    1. **Inert without credentials.** An empty `aws_access_key_id` logs one line and exits 0, so
-       forks, pull requests and repos that have not been granted the secret never touch S3. This
-       is the gate `org.openrewrite.build.publish-cgp` already uses for Maven, and it is what
-       lets the step sit unconditionally in a workflow.
-
-    2. **Name and version come from the artifact, never from an input.** npm reads
-       `package/package.json` out of the tarball; PyPI reads the PEP 427/440 normalized filename
-       `python -m build` produced; NuGet reads the authoritative `.nuspec` inside the `.nupkg`
-       for the id and takes the SemVer2-normalized version from the filename `dotnet pack`
-       produced. Keying off `project.version` or a `-P` property instead writes to paths no
-       client ever asks for: `8.86.0-rc.1` is `8.86.0rc1` in a wheel name, and NuGet's flat
-       container is all lowercase.
-
-    3. **Exists ⇒ skip the whole version.** The primary archive's key is HEADed first, and a hit
-       leaves the entire version directory alone — archive, sidecar and checksums — transferring
-       zero bytes. Per version rather than per file, because neither `npm pack`,
-       `python -m build` nor `dotnet pack` is byte reproducible: a skipped archive beside a
-       rewritten sidecar would have the sidecar describe bytes other than the stored ones, which
-       for npm breaks `dist.integrity` for anyone holding a cached packument.
-
-    4. **Prereleases upload with `kind=snapshot`, releases untagged.** That tag is the only
-       filter on the artifacts bucket's `expire-orphaned-snapshots` lifecycle rule (180d), so an
-       untagged prerelease would live forever. It is also why every upload goes through
-       `aws s3api put-object` and not `aws s3 cp`, which has no `--tagging` (verified on
-       aws-cli 2.34.34).
-
-  npm additionally writes the `dist-tags/{tag}` pointer, and writes it **last**, once the bytes
-  it names are in the bucket.
-
-  Requires `aws` (preinstalled on GitHub-hosted runners), `jq` for npm and `python3` for the
-  PyPI/NuGet archive reads. All three ship on the `ubuntu-*` images.
+  Requires `aws`, `jq` (npm) and `python3` (PyPI/NuGet); all ship on the `ubuntu-*` images.
 
 inputs:
   ecosystem:
@@ -102,8 +64,8 @@ runs:
       env:
         ECOSYSTEM: ${{ inputs.ecosystem }}
         ARTIFACTS: ${{ inputs.artifacts }}
-        # The aws CLI reads these directly. Setting them here also overrides any workflow-level
-        # AWS_* env with the (possibly empty) input, so the credential gate is deterministic.
+        # Set here rather than inherited so the credential gate below sees the input, empty or
+        # not, and never a workflow-level AWS_*.
         AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
         AWS_REGION: ${{ inputs.aws_region }}
@@ -114,7 +76,7 @@ runs:
       run: |
         set -euo pipefail
 
-        # ---- 1. inert without credentials -------------------------------------------------
+        # ---- inert without credentials ------------------------------------------------------
         if [[ -z "${AWS_ACCESS_KEY_ID:-}" ]]; then
           echo "No Code Genome Project credentials — not mirroring ${ECOSYSTEM:-packages}."
           exit 0
@@ -133,8 +95,7 @@ runs:
 
         log() { printf '%s\n' "$*"; }
 
-        # A wheel's core metadata, verbatim: `{dist}-{ver}.dist-info/METADATA`, which is what
-        # PEP 658 would have served and what the gateway reads the license and summary from.
+        # A wheel's core metadata verbatim: `{dist}-{ver}.dist-info/METADATA`, what PEP 658 serves.
         PY_WHEEL_METADATA=$(cat <<'PY'
         import sys, zipfile
         with zipfile.ZipFile(sys.argv[1]) as z:
@@ -148,9 +109,8 @@ runs:
         PY
         )
 
-        # The root .nuspec of a .nupkg: written out verbatim as the sidecar, and its <id> echoed
-        # for the storage key. Namespace-agnostic, because the nuspec schema URI has changed
-        # several times and every one of them is still in the wild.
+        # The root .nuspec of a .nupkg, verbatim, with its <id> echoed for the storage key.
+        # Namespace-agnostic: the nuspec schema URI has changed several times and all are in the wild.
         PY_NUSPEC=$(cat <<'PY'
         import sys, zipfile, xml.etree.ElementTree as ET
         with zipfile.ZipFile(sys.argv[1]) as z:
@@ -171,6 +131,8 @@ runs:
         )
 
         # ---- upload contract (lib/sync-packages.sh, verbatim in behavior) ------------------
+        # Prereleases carry kind=snapshot, the only filter on the bucket's
+        # expire-orphaned-snapshots lifecycle rule; `aws s3 cp` has no --tagging, hence put-object.
         would_put() {
           local tag=""
           if [[ "$3" == snapshot ]]; then tag="  kind=snapshot"; fi
@@ -193,18 +155,17 @@ runs:
           rm -f "$tmp"
         }
 
-        # Rule 3: one HEAD of the version's PRIMARY archive decides the whole version directory.
-        # head-object rather than the sync scripts' one-list-per-package, because a publish run
-        # has a handful of artifacts and not the thousands a bulk sync walks.
+        # One HEAD of the version's PRIMARY archive decides the whole version directory: none of
+        # `npm pack`, `python -m build`, `dotnet pack` is byte reproducible, so a per-file skip
+        # could leave a rewritten sidecar describing bytes other than the stored ones.
         mirrored() {
           aws s3api head-object --bucket "$BUCKET" --key "$1" --region "$AWS_REGION" \
             >/dev/null 2>&1
         }
 
         # ---- collect the artifacts ---------------------------------------------------------
-        # Each line is trimmed before globbing. A ragged indent in the caller's YAML would
-        # otherwise make the pattern match nothing and drop the line in silence, which is the
-        # worst possible failure mode for a mirror step.
+        # Each line is trimmed before globbing: a ragged indent in the caller's YAML would
+        # otherwise make the pattern match nothing and drop the line in silence.
         FILES=()
         while IFS= read -r pattern; do
           pattern="${pattern%$'\r'}"
@@ -217,10 +178,9 @@ runs:
           done < <(compgen -G "$pattern" || true)
         done <<< "$ARTIFACTS"
 
-        # Only the ecosystem's own archive types, so a bare `dist/` is a legal value. .snupkg
-        # symbol packages fall out here for free (`*.nupkg` does not match `*.snupkg`), which is
-        # what we want: a symbol package carries the same id and version as the primary archive
-        # and would fight it for the same key, and the flat container serves .nupkg regardless.
+        # Only the ecosystem's own archive types, so a bare `dist/` is a legal value. `*.nupkg`
+        # does not match `*.snupkg`, which is what we want: a symbol package carries the same id
+        # and version as the primary archive and would fight it for the same key.
         SELECTED=()
         for f in ${FILES[@]+"${FILES[@]}"}; do
           case "$ECOSYSTEM:$f" in
@@ -242,8 +202,8 @@ runs:
         mirror_npm() {
           local tgz="$1" manifest name version unscoped key sidecar_key kind sha1 sha512
 
-          # The tarball is the only source of truth for name and version — `npm publish` reads
-          # this exact file, so CGP and npmjs cannot disagree about what was published.
+          # The tarball is the only source of truth for name and version, never an input:
+          # `npm publish` reads this exact file, so CGP and npmjs cannot disagree.
           manifest=$(tar -xzOf "$tgz" package/package.json)
           name=$(jq -r '.name // empty' <<< "$manifest")
           version=$(jq -r '.version // empty' <<< "$manifest")
@@ -264,11 +224,9 @@ runs:
           fi
 
           put_file "$tgz" "$key" application/gzip "$kind"
-          # Sidecar = the published manifest plus the `dist` block npmjs would have added,
-          # computed from the exact bytes just uploaded. dist.tarball is deliberately absent:
-          # the gateway renders a stable CGP URL there, and a stored npmjs URL would send every
-          # client straight back to npmjs. Same shape sync-npm.sh stores for the versions it
-          # ingests, so a packument reads identically whichever path produced the version.
+          # Sidecar = the published manifest plus the `dist` block npmjs would have added. It is
+          # left without dist.tarball: a stored npmjs URL would send clients back to npmjs, so
+          # the gateway renders a CGP URL there instead.
           sha1=$(shasum -a 1 "$tgz" | awk '{print $1}')
           sha512=""
           if command -v openssl >/dev/null 2>&1; then
@@ -291,14 +249,13 @@ runs:
         }
 
         # ---- PyPI --------------------------------------------------------------------------
-        # PEP 503 normalization — the DIRECTORY name, and what pip asks for. FILENAMES keep the
-        # PEP 427 escaped form `python -m build` emitted, underscores and all; the gateway's
-        # simple-page href is the filename verbatim, so the two must not be reconciled.
+        # PEP 503 normalization — the DIRECTORY name only. FILENAMES keep the PEP 427 escaped form
+        # `python -m build` emitted, underscores and all; the two must not be reconciled, because
+        # the gateway's simple-page href is the filename verbatim.
         pep503() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[-_.]+/-/g'; }
 
-        # PEP 440 pre-release (aN/bN/rcN and the long spellings) or dev release (.devN). A post
-        # release is a final release and must not match, which is why the pre-release test
-        # anchors on the digit that ends the release segment.
+        # PEP 440 pre-release (aN/bN/rcN and the long spellings) or dev release (.devN). A .postN
+        # is a FINAL release, which is why the test anchors on the digit ending the release segment.
         pypi_prerelease() {
           local v; v=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
           if [[ "$v" =~ (^|[^a-z])dev[0-9]*($|[^a-z]) ]]; then return 0; fi
@@ -314,10 +271,8 @@ runs:
           esac
         }
 
-        # (name, version) straight out of the filename, which `python -m build` already wrote in
-        # normalized form: PEP 427 `{distribution}-{version}(-{build})?-{py}-{abi}-{plat}.whl`
-        # and PEP 625 `{name}-{version}.tar.gz`. This is the whole reason rc normalization skew
-        # cannot bite — the wheel for `8.86.0-rc.1` is literally named `…-8.86.0rc1-…`.
+        # (name, version) out of the filename, never an input: `python -m build` already wrote it
+        # in normalized form, so rc skew cannot bite — `8.86.0-rc.1` is `…-8.86.0rc1-…` in a wheel.
         PY_NAME=""; PY_VERSION=""
         pypi_coordinates() {
           local base stem
@@ -330,8 +285,8 @@ runs:
         }
 
         mirror_pypi() {
-          # Sort so a version's files are adjacent and its WHEEL comes first: the first row of a
-          # version is its primary archive, and METADATA is read from that same wheel.
+          # Sort so a version's files are adjacent and its wheel comes first: the first row is the
+          # version's primary archive, and METADATA is read from that same wheel.
           local rows=() row f w
           for f in "${SELECTED[@]}"; do
             pypi_coordinates "$f"
@@ -357,8 +312,7 @@ runs:
 
             key="$PREFIX/$name/$v/$(basename "$path")"
             put_file "$path" "$key" "$(pypi_content_type "$path")" "$kind"
-            # The gateway is the repository manager for checksums (ADR 0014 §4); sha256 hex is
-            # what the simple page's `#sha256=` href fragment needs.
+            # sha256 hex is what the simple page's `#sha256=` href fragment needs (ADR 0014 §4).
             sha=$(shasum -a 256 "$path" | awk '{print $1}')
             put_text "$sha" "$key.sha256" text/plain "$kind"
 
@@ -383,10 +337,9 @@ runs:
         mirror_nuget() {
           local pkg="$1" id version id_lower v_lower key nuspec_key kind base nuspec
 
-          # The .nuspec inside the package is authoritative for the ID's spelling. The VERSION
-          # is taken from the filename instead, because `dotnet pack` has already written the
-          # SemVer2-normalized form there — leading zeros stripped, a zero fourth component
-          # dropped — while <version> in the nuspec is whatever /p:Version was handed.
+          # The .nuspec is authoritative for the ID's spelling, but NOT for the version: the
+          # filename carries the SemVer2-normalized form `dotnet pack` wrote, while <version> in
+          # the nuspec is whatever /p:Version was handed.
           nuspec=$(mktemp)
           if ! id=$(python3 -c "$PY_NUSPEC" "$pkg" "$nuspec"); then
             log "   !! $pkg has no readable root .nuspec — skipping"
@@ -400,9 +353,9 @@ runs:
           version="${base:${#id}+1}"
           id_lower=$(lower "$id"); v_lower=$(lower "$version")
 
-          # {id-lower}/{v-lower}/… is the v3 flat-container path verbatim, which is what makes
-          # the gateway's blob route a pure prefix rewrite. The .nuspec deliberately carries no
-          # version in its filename; the flat container serves it at {id-lower}/{v}/{id}.nuspec.
+          # {id-lower}/{v-lower}/… is the v3 flat-container path verbatim — all lowercase, and the
+          # .nuspec with no version in its filename — which makes the gateway's blob route a pure
+          # prefix rewrite.
           key="$PREFIX/$id_lower/$v_lower/$id_lower.$v_lower.nupkg"
           nuspec_key="$PREFIX/$id_lower/$v_lower/$id_lower.nuspec"
           kind=release; if nuget_prerelease "$v_lower"; then kind=snapshot; fi
@@ -411,8 +364,7 @@ runs:
           if mirrored "$key"; then
             log "   skip $v_lower — already in the bucket"
           else
-            # NuGet needs no checksums at all (ADR 0014 §4): the flat container publishes none,
-            # and packages.lock.json's contentHash is computed client-side.
+            # No checksum sidecars: the flat container publishes none (ADR 0014 §4).
             put_file "$pkg" "$key" application/zip "$kind"
             put_file "$nuspec" "$nuspec_key" application/xml "$kind"
           fi

@@ -9,6 +9,30 @@ on:
         type: string
         required: false
         default: 21
+      # Non-Maven packages the Gradle publish just BUILT, to be mirrored into the Code Genome
+      # Project package repositories. Empty (the default) means the mirror step does not run at
+      # all, so a repo that publishes nothing but jars is completely unaffected.
+      #
+      # Built, not pushed: `publish` depends on the packaging tasks (pythonBuild / csharpPack /
+      # npmPack) unconditionally, and each push to PyPI / nuget.org / npmjs is separately gated
+      # on that registry's own credential. So the mirror consumes a build output rather than a
+      # side effect of a public-registry push, and retiring a public registry is a deletion —
+      # drop its push and its secret — that leaves CGP untouched.
+      cgp_npm_artifacts:
+        description: Globs naming the npm tarballs to mirror, e.g. `rewrite-javascript/build/distributions/*.tgz`.
+        type: string
+        required: false
+        default: ''
+      cgp_pypi_artifacts:
+        description: Globs naming the wheels/sdists to mirror, e.g. `rewrite-python/rewrite/dist/*`.
+        type: string
+        required: false
+        default: ''
+      cgp_nuget_artifacts:
+        description: Globs naming the .nupkg files to mirror, e.g. `rewrite-csharp/csharp/dist/*.nupkg`.
+        type: string
+        required: false
+        default: ''
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
@@ -123,3 +147,39 @@ jobs:
           final \
           publish \
           closeAndReleaseSonatypeStagingRepository
+
+      # Mirror the npm/PyPI/NuGet artifacts whichever publish step above just built into the Code
+      # Genome Project package repositories. Both publish steps are mutually exclusive and a
+      # skipped step counts as success, so plain sequencing reaches this from either path. The
+      # release-vs-rc distinction needs no `if:` here: the action reads the version out of the
+      # artifact and tags a prerelease `kind=snapshot` on its own.
+      #
+      # npm's dist-tag does turn on it, and is decided here for the same reason the publish step
+      # above keys off `github.ref`: this workflow already has the tag. A release candidate must
+      # not claim `latest` ahead of the actual latest release, so an `-rc.` tag goes to `next`
+      # alongside the snapshots ci-gradle.yml mirrors — the same rule the `npm publish --tag` in
+      # each repo's npm-publish.yml applies.
+      - if: inputs.cgp_npm_artifacts != ''
+        uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
+        with:
+          ecosystem: npm
+          artifacts: ${{ inputs.cgp_npm_artifacts }}
+          dist_tag: ${{ contains(github.ref, '-rc.') && 'next' || 'latest' }}
+          aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
+          aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
+
+      - if: inputs.cgp_pypi_artifacts != ''
+        uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
+        with:
+          ecosystem: pypi
+          artifacts: ${{ inputs.cgp_pypi_artifacts }}
+          aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
+          aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
+
+      - if: inputs.cgp_nuget_artifacts != ''
+        uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
+        with:
+          ecosystem: nuget
+          artifacts: ${{ inputs.cgp_nuget_artifacts }}
+          aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
+          aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}

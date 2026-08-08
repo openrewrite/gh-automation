@@ -1,0 +1,380 @@
+---
+name: Publish packages to the Code Genome Project
+description: |
+  Mirror already-built npm / PyPI / NuGet artifacts into the Code Genome Project package
+  repositories (`s3://codegenome-artifacts/{ecosystem}/…`), alongside the public registry the
+  same bytes are published to. Nothing is built here — point `artifacts` at what the publish
+  step already produced and run this after it. An empty `aws_access_key_id` makes the whole
+  action a no-op, so the step can sit unconditionally in a workflow and forks stay safe.
+
+  Requires `aws`, `jq` (npm) and `python3` (PyPI/NuGet); all ship on the `ubuntu-*` images.
+
+inputs:
+  ecosystem:
+    description: Which repository to publish into — `npm`, `pypi` or `nuget`.
+    required: false
+    default: ''
+  artifacts:
+    description: |
+      Newline-separated globs (or directories, which mean `<dir>/*`) naming the already-built
+      artifacts to upload, e.g. `rewrite-python/rewrite/dist/*`. Files that are not of the
+      ecosystem's archive type are ignored, so a whole `dist/` directory is a fine value.
+      Matching nothing is a warning, not a failure — a repo whose packaging task did not run
+      must not turn red here.
+    required: false
+    default: ''
+  aws_access_key_id:
+    description: |
+      Access key for the `cgp-ci-publisher` IAM user. **Empty makes the whole action a no-op**,
+      which is what keeps forks and pull requests safe.
+    required: false
+    default: ''
+  aws_secret_access_key:
+    description: Secret key for the `cgp-ci-publisher` IAM user.
+    required: false
+    default: ''
+  aws_region:
+    description: Region of the artifacts bucket.
+    required: false
+    default: us-west-2
+  bucket:
+    description: Artifacts bucket to publish into.
+    required: false
+    default: codegenome-artifacts
+  prefix:
+    description: Storage prefix within the bucket. Defaults to the ecosystem name.
+    required: false
+    default: ''
+  dist_tag:
+    description: |
+      npm only — the dist-tag pointer to write: `next` for a snapshot or an `-rc.` tag, `latest`
+      for a plain `v<x.y.z>` release. That is the rule each repo's `npm publish --tag` applies,
+      so CGP and npmjs cannot disagree about what `latest`/`next` mean. Empty writes no pointer.
+    required: false
+    default: ''
+  dry_run:
+    description: Resolve and report every derived key without uploading anything.
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        ECOSYSTEM: ${{ inputs.ecosystem }}
+        ARTIFACTS: ${{ inputs.artifacts }}
+        # Set here rather than inherited so the credential gate below sees the input, empty or
+        # not, and never a workflow-level AWS_*.
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key }}
+        AWS_REGION: ${{ inputs.aws_region }}
+        BUCKET: ${{ inputs.bucket }}
+        INPUT_PREFIX: ${{ inputs.prefix }}
+        DIST_TAG: ${{ inputs.dist_tag }}
+        DRY_RUN: ${{ inputs.dry_run }}
+      run: |
+        set -euo pipefail
+
+        # ---- inert without credentials ------------------------------------------------------
+        if [[ -z "${AWS_ACCESS_KEY_ID:-}" ]]; then
+          echo "No Code Genome Project credentials — not mirroring ${ECOSYSTEM:-packages}."
+          exit 0
+        fi
+
+        case "$ECOSYSTEM" in
+          npm|pypi|nuget) ;;
+          *) echo "::error::ecosystem must be npm, pypi or nuget (got '${ECOSYSTEM}')"; exit 1 ;;
+        esac
+        PREFIX="${INPUT_PREFIX:-$ECOSYSTEM}"
+        case "$DRY_RUN" in true|yes|1) DRY_RUN=true ;; *) DRY_RUN=false ;; esac
+        if [[ -n "$DIST_TAG" && "$ECOSYSTEM" != npm ]]; then
+          echo "::warning::dist_tag is npm-only; ignoring '$DIST_TAG' for $ECOSYSTEM"
+          DIST_TAG=""
+        fi
+
+        log() { printf '%s\n' "$*"; }
+
+        # A wheel's core metadata verbatim: `{dist}-{ver}.dist-info/METADATA`, what PEP 658 serves.
+        PY_WHEEL_METADATA=$(cat <<'PY'
+        import sys, zipfile
+        with zipfile.ZipFile(sys.argv[1]) as z:
+            hits = [n for n in z.namelist()
+                    if n.count("/") == 1 and n.endswith(".dist-info/METADATA")]
+            if not hits:
+                sys.exit(1)
+            data = z.read(hits[0])
+        with open(sys.argv[2], "wb") as out:
+            out.write(data)
+        PY
+        )
+
+        # The root .nuspec of a .nupkg, verbatim, with its <id> echoed for the storage key.
+        # Namespace-agnostic: the nuspec schema URI has changed several times and all are in the wild.
+        PY_NUSPEC=$(cat <<'PY'
+        import sys, zipfile, xml.etree.ElementTree as ET
+        with zipfile.ZipFile(sys.argv[1]) as z:
+            hits = [n for n in z.namelist() if "/" not in n and n.lower().endswith(".nuspec")]
+            if not hits:
+                sys.exit(1)
+            raw = z.read(hits[0])
+        with open(sys.argv[2], "wb") as out:
+            out.write(raw)
+        def child(parent, tag):
+            for e in parent if parent is not None else []:
+                if e.tag.rsplit("}", 1)[-1] == tag:
+                    return e
+            return None
+        el = child(child(ET.fromstring(raw), "metadata"), "id")
+        print((el.text or "").strip() if el is not None else "")
+        PY
+        )
+
+        # ---- upload contract (lib/sync-packages.sh, verbatim in behavior) ------------------
+        # Prereleases carry kind=snapshot, the only filter on the bucket's
+        # expire-orphaned-snapshots lifecycle rule; `aws s3 cp` has no --tagging, hence put-object.
+        would_put() {
+          local tag=""
+          if [[ "$3" == snapshot ]]; then tag="  kind=snapshot"; fi
+          log "   would put s3://$BUCKET/$1  [$2]$tag"
+        }
+
+        put_file() { # src key content-type kind
+          if $DRY_RUN; then would_put "$2" "$3" "$4"; return 0; fi
+          local args=(--bucket "$BUCKET" --key "$2" --body "$1" --content-type "$3"
+                      --region "$AWS_REGION")
+          if [[ "$4" == snapshot ]]; then args+=(--tagging "kind=snapshot"); fi
+          aws s3api put-object "${args[@]}" >/dev/null
+          log "   put s3://$BUCKET/$2"
+        }
+
+        put_text() { # text key content-type kind
+          local tmp; tmp=$(mktemp)
+          printf '%s' "$1" > "$tmp"
+          put_file "$tmp" "$2" "$3" "$4"
+          rm -f "$tmp"
+        }
+
+        # One HEAD of the version's PRIMARY archive decides the whole version directory: none of
+        # `npm pack`, `python -m build`, `dotnet pack` is byte reproducible, so a per-file skip
+        # could leave a rewritten sidecar describing bytes other than the stored ones.
+        mirrored() {
+          aws s3api head-object --bucket "$BUCKET" --key "$1" --region "$AWS_REGION" \
+            >/dev/null 2>&1
+        }
+
+        # ---- collect the artifacts ---------------------------------------------------------
+        # Each line is trimmed before globbing: a ragged indent in the caller's YAML would
+        # otherwise make the pattern match nothing and drop the line in silence.
+        FILES=()
+        while IFS= read -r pattern; do
+          pattern="${pattern%$'\r'}"
+          pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+          pattern="${pattern%"${pattern##*[![:space:]]}"}"
+          if [[ -z "$pattern" ]]; then continue; fi
+          if [[ -d "$pattern" ]]; then pattern="${pattern%/}/*"; fi
+          while IFS= read -r f; do
+            if [[ -f "$f" ]]; then FILES+=("$f"); fi
+          done < <(compgen -G "$pattern" || true)
+        done <<< "$ARTIFACTS"
+
+        # Only the ecosystem's own archive types, so a bare `dist/` is a legal value. `*.nupkg`
+        # does not match `*.snupkg`, which is what we want: a symbol package carries the same id
+        # and version as the primary archive and would fight it for the same key.
+        SELECTED=()
+        for f in ${FILES[@]+"${FILES[@]}"}; do
+          case "$ECOSYSTEM:$f" in
+            npm:*.tgz|pypi:*.whl|pypi:*.tar.gz|pypi:*.zip|nuget:*.nupkg) SELECTED+=("$f") ;;
+          esac
+        done
+
+        if [[ ${#SELECTED[@]} -eq 0 ]]; then
+          echo "::warning::No $ECOSYSTEM artifacts matched; nothing mirrored to the Code Genome Project."
+          exit 0
+        fi
+        log "Mirroring ${#SELECTED[@]} $ECOSYSTEM artifact(s) to s3://$BUCKET/$PREFIX/"
+        if $DRY_RUN; then log "dry run: resolving keys only, uploading nothing"; fi
+
+        # ---- npm ---------------------------------------------------------------------------
+        # SemVer prerelease: anything left of the first `-` once +build metadata is stripped.
+        npm_prerelease() { local v="${1%%+*}"; [[ "$v" == *-* ]]; }
+
+        mirror_npm() {
+          local tgz="$1" manifest name version unscoped key sidecar_key kind sha1 sha512
+
+          # The tarball is the only source of truth for name and version, never an input:
+          # `npm publish` reads this exact file, so CGP and npmjs cannot disagree.
+          manifest=$(tar -xzOf "$tgz" package/package.json)
+          name=$(jq -r '.name // empty' <<< "$manifest")
+          version=$(jq -r '.version // empty' <<< "$manifest")
+          if [[ -z "$name" || -z "$version" ]]; then
+            log "   !! $tgz has no name/version in package/package.json — skipping"
+            return 0
+          fi
+
+          unscoped="${name##*/}"              # the basename is UNSCOPED: rewrite-8.88.0.tgz
+          key="$PREFIX/$name/$version/$unscoped-$version.tgz"
+          sidecar_key="$PREFIX/$name/$version/package.json"
+          kind=release; if npm_prerelease "$version"; then kind=snapshot; fi
+          log ">> $name@$version  ($kind)"
+
+          if mirrored "$key"; then
+            log "   skip $version — already in the bucket"
+            return 0
+          fi
+
+          put_file "$tgz" "$key" application/gzip "$kind"
+          # Sidecar = the published manifest plus the `dist` block npmjs would have added. It is
+          # left without dist.tarball: a stored npmjs URL would send clients back to npmjs, so
+          # the gateway renders a CGP URL there instead.
+          sha1=$(shasum -a 1 "$tgz" | awk '{print $1}')
+          sha512=""
+          if command -v openssl >/dev/null 2>&1; then
+            sha512="sha512-$(openssl dgst -sha512 -binary "$tgz" | openssl base64 -A)"
+          fi
+          put_text "$(jq -c --arg shasum "$sha1" --arg integrity "$sha512" '
+                        del(.dist.tarball)
+                        | .dist.shasum = $shasum
+                        | if $integrity == "" then . else .dist.integrity = $integrity end
+                      ' <<< "$manifest")" "$sidecar_key" application/json "$kind"
+
+          # Pointer LAST, so it can only ever name bytes that are already in the bucket. Always
+          # untagged: a lifecycle rule must never reclaim a pointer.
+          if [[ -z "$DIST_TAG" ]]; then
+            log "   no dist_tag given — leaving dist-tags/ alone"
+          else
+            put_text "$version" "$PREFIX/$name/dist-tags/$DIST_TAG" text/plain release
+            if $DRY_RUN; then log "        = $version"; fi
+          fi
+        }
+
+        # ---- PyPI --------------------------------------------------------------------------
+        # PEP 503 normalization — the DIRECTORY name only. FILENAMES keep the PEP 427 escaped form
+        # `python -m build` emitted, underscores and all; the two must not be reconciled, because
+        # the gateway's simple-page href is the filename verbatim.
+        pep503() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[-_.]+/-/g'; }
+
+        # PEP 440 pre-release (aN/bN/rcN and the long spellings) or dev release (.devN). A .postN
+        # is a FINAL release, which is why the test anchors on the digit ending the release segment.
+        pypi_prerelease() {
+          local v; v=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+          if [[ "$v" =~ (^|[^a-z])dev[0-9]*($|[^a-z]) ]]; then return 0; fi
+          if [[ "$v" =~ [0-9][._-]?(alpha|beta|preview|pre|rc|a|b|c)[._-]?[0-9]+ ]]; then return 0; fi
+          return 1
+        }
+
+        pypi_content_type() {
+          case "$1" in
+            *.whl|*.zip|*.egg) echo application/zip ;;
+            *.tar.gz|*.tgz) echo application/gzip ;;
+            *) echo application/octet-stream ;;
+          esac
+        }
+
+        # (name, version) out of the filename, never an input: `python -m build` already wrote it
+        # in normalized form, so rc skew cannot bite — `8.86.0-rc.1` is `…-8.86.0rc1-…` in a wheel.
+        PY_NAME=""; PY_VERSION=""
+        pypi_coordinates() {
+          local base stem
+          base=$(basename "$1")
+          case "$base" in
+            *.whl) IFS='-' read -r PY_NAME PY_VERSION _ <<< "$base" ;;
+            *)     stem="${base%.tar.gz}"; stem="${stem%.zip}"
+                   PY_NAME="${stem%-*}"; PY_VERSION="${stem##*-}" ;;
+          esac
+        }
+
+        mirror_pypi() {
+          # Sort so a version's files are adjacent and its wheel comes first: the first row is the
+          # version's primary archive, and METADATA is read from that same wheel.
+          local rows=() row f w
+          for f in "${SELECTED[@]}"; do
+            pypi_coordinates "$f"
+            w=1; if [[ "$f" == *.whl ]]; then w=0; fi
+            rows+=("$PY_VERSION"$'\t'"$w"$'\t'"$PY_NAME"$'\t'"$f")
+          done
+          mapfile -t rows < <(printf '%s\n' "${rows[@]}" | sort -t$'\t' -k1,1V -k2,2n)
+
+          local version="" name="" kind="" skip=false meta_done=false
+          local v n path key sha meta
+          for row in "${rows[@]}"; do
+            IFS=$'\t' read -r v w n path <<< "$row"
+            if [[ "$v" != "$version" ]]; then
+              version="$v"; name=$(pep503 "$n"); skip=false; meta_done=false
+              kind=release; if pypi_prerelease "$v"; then kind=snapshot; fi
+              log ">> $n $v  (pypi/$name, $kind)"
+              if mirrored "$PREFIX/$name/$v/$(basename "$path")"; then
+                log "   skip $v — already in the bucket"
+                skip=true
+              fi
+            fi
+            if $skip; then continue; fi
+
+            key="$PREFIX/$name/$v/$(basename "$path")"
+            put_file "$path" "$key" "$(pypi_content_type "$path")" "$kind"
+            # sha256 hex is what the simple page's `#sha256=` href fragment needs (ADR 0014 §4).
+            sha=$(shasum -a 256 "$path" | awk '{print $1}')
+            put_text "$sha" "$key.sha256" text/plain "$kind"
+
+            # One verbatim METADATA per version directory, from the wheel that sorted first.
+            if [[ "$w" == 0 ]] && ! $meta_done; then
+              meta=$(mktemp)
+              if python3 -c "$PY_WHEEL_METADATA" "$path" "$meta"; then
+                put_file "$meta" "$PREFIX/$name/$v/METADATA" text/plain "$kind"
+                meta_done=true
+              else
+                log "   .. no METADATA in $(basename "$path"); the gateway will extract it"
+              fi
+              rm -f "$meta"
+            fi
+          done
+        }
+
+        # ---- NuGet -------------------------------------------------------------------------
+        lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+        nuget_prerelease() { local v="${1%%+*}"; [[ "$v" == *-* ]]; }
+
+        mirror_nuget() {
+          local pkg="$1" id version id_lower v_lower key nuspec_key kind base nuspec
+
+          # The .nuspec is authoritative for the ID's spelling, but NOT for the version: the
+          # filename carries the SemVer2-normalized form `dotnet pack` wrote, while <version> in
+          # the nuspec is whatever /p:Version was handed.
+          nuspec=$(mktemp)
+          if ! id=$(python3 -c "$PY_NUSPEC" "$pkg" "$nuspec"); then
+            log "   !! $pkg has no readable root .nuspec — skipping"
+            rm -f "$nuspec"; return 0
+          fi
+          base=$(basename "$pkg" .nupkg)
+          if [[ -z "$id" || "$(lower "$base")" != "$(lower "$id")".* ]]; then
+            log "   !! cannot derive a version for $pkg from id '$id' — skipping"
+            rm -f "$nuspec"; return 0
+          fi
+          version="${base:${#id}+1}"
+          id_lower=$(lower "$id"); v_lower=$(lower "$version")
+
+          # {id-lower}/{v-lower}/… is the v3 flat-container path verbatim — all lowercase, and the
+          # .nuspec with no version in its filename — which makes the gateway's blob route a pure
+          # prefix rewrite.
+          key="$PREFIX/$id_lower/$v_lower/$id_lower.$v_lower.nupkg"
+          nuspec_key="$PREFIX/$id_lower/$v_lower/$id_lower.nuspec"
+          kind=release; if nuget_prerelease "$v_lower"; then kind=snapshot; fi
+          log ">> $id $version  (nuget/$id_lower, $kind)"
+
+          if mirrored "$key"; then
+            log "   skip $v_lower — already in the bucket"
+          else
+            # No checksum sidecars: the flat container publishes none (ADR 0014 §4).
+            put_file "$pkg" "$key" application/zip "$kind"
+            put_file "$nuspec" "$nuspec_key" application/xml "$kind"
+          fi
+          rm -f "$nuspec"
+        }
+
+        # ---- go ----------------------------------------------------------------------------
+        case "$ECOSYSTEM" in
+          npm)   for f in "${SELECTED[@]}"; do mirror_npm "$f"; done ;;
+          pypi)  mirror_pypi ;;
+          nuget) for f in "${SELECTED[@]}"; do mirror_nuget "$f"; done ;;
+        esac
+        log "done"

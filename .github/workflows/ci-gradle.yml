@@ -14,29 +14,28 @@ on:
         type: boolean
         default: true
         required: false
-      # Non-Maven packages the Gradle publish just BUILT, to be mirrored into the Code Genome
-      # Project package repositories. Empty (the default) means the mirror step does not run at
-      # all, so a repo that publishes nothing but jars is completely unaffected — the CGP Maven
-      # dual-publish it may already do is a separate mechanism (the publish-cgp convention
-      # plugin, driven by the cgp_aws_* secrets).
+      # Non-Maven distributables to publish to the Code Genome Project. Empty (the default) means
+      # the step does not run at all, so a repo that publishes nothing but jars is completely
+      # unaffected — the CGP Maven dual-publish it may already do is a separate mechanism (the
+      # publish-cgp convention plugin, driven by the cgp_aws_* secrets).
       #
-      # Built, not pushed: `publish` depends on the packaging tasks (pythonBuild / csharpPack /
-      # npmPack) unconditionally, and each push to PyPI / nuget.org / npmjs is separately gated
-      # on that registry's own credential. So the mirror consumes a build output rather than a
-      # side effect of a public-registry push, and retiring a public registry is a deletion —
-      # drop its push and its secret — that leaves CGP untouched.
+      # These name what `publish` BUILT, not what it pushed: `publish` depends on the packaging
+      # tasks (pythonBuild / csharpPack / npmPack) unconditionally, while each push to PyPI /
+      # nuget.org / npmjs is separately gated on that registry's own credential. CGP is therefore
+      # a destination in its own right rather than a copy of the public registry, and retiring a
+      # public registry is a deletion — drop its push and its secret — that leaves CGP untouched.
       cgp_npm_artifacts:
-        description: Globs naming the npm tarballs to mirror, e.g. `rewrite-javascript/build/distributions/*.tgz`.
+        description: Globs naming the npm tarballs to publish, e.g. `rewrite-javascript/build/distributions/*.tgz`.
         type: string
         required: false
         default: ''
       cgp_pypi_artifacts:
-        description: Globs naming the wheels/sdists to mirror, e.g. `rewrite-python/rewrite/dist/*`.
+        description: Globs naming the wheels/sdists to publish, e.g. `rewrite-python/rewrite/dist/*`.
         type: string
         required: false
         default: ''
       cgp_nuget_artifacts:
-        description: Globs naming the .nupkg files to mirror, e.g. `rewrite-csharp/csharp/dist/*.nupkg`.
+        description: Globs naming the .nupkg files to publish, e.g. `rewrite-csharp/csharp/dist/*.nupkg`.
         type: string
         required: false
         default: ''
@@ -128,16 +127,26 @@ jobs:
           cgp_aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
           cgp_aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
 
-      # Mirror the npm/PyPI/NuGet artifacts the step above just built into the Code Genome
-      # Project package repositories. The publish guard is repeated verbatim rather than
-      # factored out, so nothing about the existing step's behavior can shift. The action is
-      # inert without cgp_aws_access_key_id anyway, which is the real safety net.
+      # Publish the npm/PyPI/NuGet distributables to the Code Genome Project. CGP is a destination
+      # in its own right, not a copy of the public registry: `publish` builds the distributable
+      # unconditionally and each registry push is gated on its own credential, so retiring a public
+      # registry is deleting a step and a secret rather than a rewiring.
+      #
+      # !cancelled() is what makes that independence real at the workflow level. Without it a failed
+      # twine or `dotnet nuget push` fails the step above and GitHub skips everything after it, so a
+      # public-registry outage would silently take CGP down with it. The build tasks run before the
+      # push tasks within the same Gradle invocation, so the artifacts are on disk either way.
+      #
+      # The publish guard is otherwise repeated verbatim rather than factored out, so nothing about
+      # the existing step's behavior can shift. The action is inert without cgp_aws_access_key_id,
+      # which is the real safety net.
       #
       # The npm dist-tag is a pure function of the trigger and so is decided here rather than
       # threaded in from the caller: everything `ci` publishes is a snapshot, and a snapshot is
       # `next`. publish-gradle.yml resolves `latest` vs `next` from the tag. Between them they
       # apply the same rule as the `npm publish --tag` in each repo's npm-publish.yml.
       - if: >
+          !cancelled() &&
           inputs.cgp_npm_artifacts != '' &&
           inputs.publish_snapshots &&
           github.event_name != 'pull_request' &&
@@ -152,6 +161,7 @@ jobs:
           aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
 
       - if: >
+          !cancelled() &&
           inputs.cgp_pypi_artifacts != '' &&
           inputs.publish_snapshots &&
           github.event_name != 'pull_request' &&
@@ -165,6 +175,7 @@ jobs:
           aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
 
       - if: >
+          !cancelled() &&
           inputs.cgp_nuget_artifacts != '' &&
           inputs.publish_snapshots &&
           github.event_name != 'pull_request' &&

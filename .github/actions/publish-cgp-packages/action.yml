@@ -1,11 +1,13 @@
 ---
 name: Publish packages to the Code Genome Project
 description: |
-  Mirror already-built npm / PyPI / NuGet artifacts into the Code Genome Project package
-  repositories (`s3://codegenome-artifacts/{ecosystem}/…`), alongside the public registry the
-  same bytes are published to. Nothing is built here — point `artifacts` at what the publish
-  step already produced and run this after it. An empty `aws_access_key_id` makes the whole
-  action a no-op, so the step can sit unconditionally in a workflow and forks stay safe.
+  Publish npm / PyPI / NuGet distributables to the Code Genome Project package repositories
+  (`s3://codegenome-artifacts/{ecosystem}/…`). CGP is a publish destination in its own right,
+  not a copy of the public registry: `publish` builds the distributable unconditionally and each
+  registry push is gated on its own credential, so this runs whether or not the same bytes also
+  go to npmjs / PyPI / nuget.org, and keeps working when they stop. Point `artifacts` at the
+  build task's output. An empty `aws_access_key_id` makes the whole action a no-op, so the step
+  can sit unconditionally in a workflow and forks stay safe.
 
   Requires `aws`, `jq` (npm) and `python3` (PyPI/NuGet); all ship on the `ubuntu-*` images.
 
@@ -78,7 +80,7 @@ runs:
 
         # ---- inert without credentials ------------------------------------------------------
         if [[ -z "${AWS_ACCESS_KEY_ID:-}" ]]; then
-          echo "No Code Genome Project credentials — not mirroring ${ECOSYSTEM:-packages}."
+          echo "No Code Genome Project credentials — not publishing ${ECOSYSTEM:-packages}."
           exit 0
         fi
 
@@ -158,7 +160,7 @@ runs:
         # One HEAD of the version's PRIMARY archive decides the whole version directory: none of
         # `npm pack`, `python -m build`, `dotnet pack` is byte reproducible, so a per-file skip
         # could leave a rewritten sidecar describing bytes other than the stored ones.
-        mirrored() {
+        already_published() {
           aws s3api head-object --bucket "$BUCKET" --key "$1" --region "$AWS_REGION" \
             >/dev/null 2>&1
         }
@@ -189,17 +191,17 @@ runs:
         done
 
         if [[ ${#SELECTED[@]} -eq 0 ]]; then
-          echo "::warning::No $ECOSYSTEM artifacts matched; nothing mirrored to the Code Genome Project."
+          echo "::warning::No $ECOSYSTEM artifacts matched; nothing published to the Code Genome Project."
           exit 0
         fi
-        log "Mirroring ${#SELECTED[@]} $ECOSYSTEM artifact(s) to s3://$BUCKET/$PREFIX/"
+        log "Publishing ${#SELECTED[@]} $ECOSYSTEM artifact(s) to s3://$BUCKET/$PREFIX/"
         if $DRY_RUN; then log "dry run: resolving keys only, uploading nothing"; fi
 
         # ---- npm ---------------------------------------------------------------------------
         # SemVer prerelease: anything left of the first `-` once +build metadata is stripped.
         npm_prerelease() { local v="${1%%+*}"; [[ "$v" == *-* ]]; }
 
-        mirror_npm() {
+        publish_npm() {
           local tgz="$1" manifest name version unscoped key sidecar_key kind sha1 sha512
 
           # The tarball is the only source of truth for name and version, never an input:
@@ -218,7 +220,7 @@ runs:
           kind=release; if npm_prerelease "$version"; then kind=snapshot; fi
           log ">> $name@$version  ($kind)"
 
-          if mirrored "$key"; then
+          if already_published "$key"; then
             log "   skip $version — already in the bucket"
             return 0
           fi
@@ -284,7 +286,7 @@ runs:
           esac
         }
 
-        mirror_pypi() {
+        publish_pypi() {
           # Sort so a version's files are adjacent and its wheel comes first: the first row is the
           # version's primary archive, and METADATA is read from that same wheel.
           local rows=() row f w
@@ -303,7 +305,7 @@ runs:
               version="$v"; name=$(pep503 "$n"); skip=false; meta_done=false
               kind=release; if pypi_prerelease "$v"; then kind=snapshot; fi
               log ">> $n $v  (pypi/$name, $kind)"
-              if mirrored "$PREFIX/$name/$v/$(basename "$path")"; then
+              if already_published "$PREFIX/$name/$v/$(basename "$path")"; then
                 log "   skip $v — already in the bucket"
                 skip=true
               fi
@@ -334,7 +336,7 @@ runs:
         lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
         nuget_prerelease() { local v="${1%%+*}"; [[ "$v" == *-* ]]; }
 
-        mirror_nuget() {
+        publish_nuget() {
           local pkg="$1" id version id_lower v_lower key nuspec_key kind base nuspec
 
           # The .nuspec is authoritative for the ID's spelling, but NOT for the version: the
@@ -361,7 +363,7 @@ runs:
           kind=release; if nuget_prerelease "$v_lower"; then kind=snapshot; fi
           log ">> $id $version  (nuget/$id_lower, $kind)"
 
-          if mirrored "$key"; then
+          if already_published "$key"; then
             log "   skip $v_lower — already in the bucket"
           else
             # No checksum sidecars: the flat container publishes none (ADR 0014 §4).
@@ -373,8 +375,8 @@ runs:
 
         # ---- go ----------------------------------------------------------------------------
         case "$ECOSYSTEM" in
-          npm)   for f in "${SELECTED[@]}"; do mirror_npm "$f"; done ;;
-          pypi)  mirror_pypi ;;
-          nuget) for f in "${SELECTED[@]}"; do mirror_nuget "$f"; done ;;
+          npm)   for f in "${SELECTED[@]}"; do publish_npm "$f"; done ;;
+          pypi)  publish_pypi ;;
+          nuget) for f in "${SELECTED[@]}"; do publish_nuget "$f"; done ;;
         esac
         log "done"

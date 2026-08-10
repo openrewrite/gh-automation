@@ -9,15 +9,9 @@ on:
         type: string
         required: false
         default: 21
-      # Non-Maven distributables to publish to the Code Genome Project. Empty (the default) means
-      # the step does not run at all, so a repo that publishes nothing but jars is completely
-      # unaffected.
-      #
-      # These name what `publish` BUILT, not what it pushed: `publish` depends on the packaging
-      # tasks (pythonBuild / csharpPack / npmPack) unconditionally, while each push to PyPI /
-      # nuget.org / npmjs is separately gated on that registry's own credential. CGP is therefore
-      # a destination in its own right rather than a copy of the public registry, and retiring a
-      # public registry is a deletion — drop its push and its secret — that leaves CGP untouched.
+      # These name what `publish` BUILT, not what it pushed — the packaging tasks run
+      # unconditionally, each public-registry push is gated on its own credential. Empty (the
+      # default) skips the step entirely.
       cgp_npm_artifacts:
         description: Globs naming the npm tarballs to publish, e.g. `rewrite-javascript/build/distributions/*.tgz`.
         type: string
@@ -148,20 +142,9 @@ jobs:
           publish \
           closeAndReleaseSonatypeStagingRepository
 
-      # Publish the npm/PyPI/NuGet distributables whichever publish step above BUILT to the Code
-      # Genome Project. Both publish steps are mutually exclusive and a skipped step counts as
-      # success, so plain sequencing reaches this from either path; `!cancelled()` additionally
-      # keeps CGP publishing when the Sonatype/PyPI/nuget.org push above failed, which is what
-      # makes the two destinations independent rather than one riding on the other.
-      #
-      # The release-vs-rc distinction needs no `if:` here: the action reads the version out of the
-      # artifact and tags a prerelease `kind=snapshot` on its own.
-      #
-      # npm's dist-tag does turn on it, and is decided here for the same reason the publish step
-      # above keys off `github.ref`: this workflow already has the tag. A release candidate must
-      # not claim `latest` ahead of the actual latest release, so an `-rc.` tag goes to `next`
-      # alongside the snapshots ci-gradle.yml publishes — the same rule the `npm publish --tag` in
-      # each repo's npm-publish.yml applies.
+      # !cancelled() so a failed publish step above does not skip these: the packaging tasks ran
+      # before it, so the distributables are on disk either way. A release candidate must not
+      # claim npm's `latest` ahead of the actual latest release, hence the dist_tag expression.
       - if: ${{ !cancelled() && inputs.cgp_npm_artifacts != '' }}
         uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
         with:

@@ -2,12 +2,9 @@
 name: Publish packages to the Code Genome Project
 description: |
   Publish npm / PyPI / NuGet distributables to the Code Genome Project package repositories
-  (`s3://codegenome-artifacts/{ecosystem}/…`). CGP is a publish destination in its own right,
-  not a copy of the public registry: `publish` builds the distributable unconditionally and each
-  registry push is gated on its own credential, so this runs whether or not the same bytes also
-  go to npmjs / PyPI / nuget.org, and keeps working when they stop. Point `artifacts` at the
-  build task's output. An empty `aws_access_key_id` makes the whole action a no-op, so the step
-  can sit unconditionally in a workflow and forks stay safe.
+  (`s3://codegenome-artifacts/{ecosystem}/…`), a destination in its own right rather than a copy
+  of the public registry. Point `artifacts` at the packaging task's output. An empty
+  `aws_access_key_id` makes the whole action a no-op, which is what keeps forks safe.
 
   Requires `aws`, `jq` (npm) and `python3` (PyPI/NuGet); all ship on the `ubuntu-*` images.
 

@@ -16,6 +16,7 @@ Reusable workflows: entire jobs that another repository calls with `uses:` from 
 | `publish-gradle.yml` | Release publishing from a tag: `candidate` for `-rc.` tags, `final` otherwise, closing and releasing the Sonatype staging repository. |
 | `receive-pr-runner.yml` | Runs a Moderne CLI recipe against an incoming pull request and uploads the resulting diff as an artifact. Handles untrusted code, so it gets no secrets. |
 | `comment-pr-runner.yml` | Picks up that artifact from a `workflow_run` and posts the diff back as pull request review suggestions. Has write permissions, so it must not execute untrusted code. |
+| `cancel-pr-runs.yml` | Cancels workflow runs still in flight for a pull request once it is closed or merged. |
 | `repository-backup.yml` | Mirrors the repository to an S3-compatible object storage bucket. |
 | `stale.yml` | Closes unanswered `question` issues and pull requests without activity for 90 days. |
 
@@ -47,3 +48,20 @@ jobs:
     uses: openrewrite/gh-automation/.github/workflows/ci-gradle.yml@main
     secrets: inherit
 ```
+
+Merging a pull request does not stop the CI run started by its last push, so add a second workflow to
+stop paying for builds whose result no longer matters:
+
+```yaml
+name: cancel-pr-runs
+on:
+  pull_request:
+    types: [closed]
+jobs:
+  cancel:
+    uses: openrewrite/gh-automation/.github/workflows/cancel-pr-runs.yml@main
+```
+
+This covers every workflow running for that pull request, not just the one it is paired with. Add
+`permissions: actions: write` to the calling job in repositories where the default `GITHUB_TOKEN`
+permissions are read-only.

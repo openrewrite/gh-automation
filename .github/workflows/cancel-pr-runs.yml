@@ -1,0 +1,37 @@
+---
+name: cancel-pr-runs
+
+on:
+  workflow_call:
+
+# GitHub does not cancel workflow runs when a pull request is closed, so a build started on the last
+# push keeps occupying runners long after the merge. @see https://github.com/orgs/community/discussions/178882
+# Callers trigger this on `pull_request: types: [closed]`; it cancels every run still going for the
+# head commit, across all workflows, and skips itself.
+jobs:
+  cancel-pr-runs:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          runs=$(for event in pull_request pull_request_target; do
+            for status in queued in_progress; do
+              gh api --paginate \
+                "repos/$GH_REPO/actions/runs?event=$event&status=$status&head_sha=$HEAD_SHA" \
+                --jq '.workflow_runs[] | "\(.id) \(.name)"'
+            done
+          done | sort -u)
+
+          echo "$runs" | while read -r id name; do
+            if [ -z "$id" ] || [ "$id" = "$RUN_ID" ]; then
+              continue
+            fi
+            echo "Cancelling $name ($id)"
+            gh api --silent --method POST "repos/$GH_REPO/actions/runs/$id/cancel" || true
+          done

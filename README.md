@@ -13,7 +13,6 @@ Reusable workflows: entire jobs that another repository calls with `uses:` from 
 | Workflow | Purpose |
 | --- | --- |
 | `ci-gradle.yml` | Standard Gradle CI: build on `ubuntu-latest`, publish snapshots from `main`, notify Slack on scheduled-build failure. |
-| `ci-gradle-blacksmith.yml` | Same pipeline on Blacksmith runners, with the steps inlined rather than composed from `.github/actions`. |
 | `publish-gradle.yml` | Release publishing from a tag: `candidate` for `-rc.` tags, `final` otherwise, closing and releasing the Sonatype staging repository. |
 | `receive-pr-runner.yml` | Runs a Moderne CLI recipe against an incoming pull request and uploads the resulting diff as an artifact. Handles untrusted code, so it gets no secrets. |
 | `comment-pr-runner.yml` | Picks up that artifact from a `workflow_run` and posts the diff back as pull request review suggestions. Has write permissions, so it must not execute untrusted code. |

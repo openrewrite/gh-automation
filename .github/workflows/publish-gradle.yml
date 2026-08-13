@@ -34,10 +34,15 @@ on:
         description: Password for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
         required: false
       cgp_aws_access_key_id:
-        description: AWS access key id for publishing artifacts to the Code Genome Project.
+        description: AWS access key id for the Maven dual-publish to the Code Genome Project.
         required: false
       cgp_aws_secret_access_key:
-        description: AWS secret access key for publishing artifacts to the Code Genome Project.
+        description: AWS secret access key for the Maven dual-publish to the Code Genome Project.
+        required: false
+      cgp_publish_token:
+        description: >
+          Code Genome Project token carrying the `publish` entitlement, used by the npm/PyPI/NuGet
+          publish tasks. Unrelated to the AWS keys above, which drive the Maven publish only.
         required: false
       cgp_artifacts_maven_username:
         description: Username for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
@@ -55,11 +60,15 @@ env:
   ORG_GRADLE_PROJECT_nodeAuthToken: ${{ secrets.node_auth_token }}
   ORG_GRADLE_PROJECT_pypiToken: ${{ secrets.pypi_token }}
   ORG_GRADLE_PROJECT_nugetApiKey: ${{ secrets.nuget_api_key }}
+  # The npm/PyPI/NuGet publish tasks. Empty when a repo has not forwarded the secret, which is why
+  # each of those tasks tests for blank rather than merely present.
+  ORG_GRADLE_PROJECT_cgpPublishToken: ${{ secrets.cgp_publish_token }}
   REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
   REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
   REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
-  # Publish releases to the Code Genome Project. Empty when a repo has not forwarded the
-  # secret, which leaves the org.openrewrite.build.publish-cgp convention plugin inert.
+  # The MAVEN dual-publish to the Code Genome Project, and nothing else: this is Gradle's own s3://
+  # transport under org.openrewrite.build.publish-cgp, not the package publishing above. Empty when
+  # a repo has not forwarded the secret, which leaves that convention plugin inert.
   AWS_ACCESS_KEY_ID: ${{ secrets.cgp_aws_access_key_id }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.cgp_aws_secret_access_key }}
   AWS_REGION: us-west-2

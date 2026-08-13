@@ -14,24 +14,6 @@ on:
         type: boolean
         default: true
         required: false
-      # These name what `publish` BUILT, not what it pushed — the packaging tasks run
-      # unconditionally, each public-registry push is gated on its own credential. Empty (the
-      # default) skips the step entirely.
-      cgp_npm_artifacts:
-        description: Globs naming the npm tarballs to publish, e.g. `rewrite-javascript/build/distributions/*.tgz`.
-        type: string
-        required: false
-        default: ''
-      cgp_pypi_artifacts:
-        description: Globs naming the wheels/sdists to publish, e.g. `rewrite-python/rewrite/dist/*`.
-        type: string
-        required: false
-        default: ''
-      cgp_nuget_artifacts:
-        description: Globs naming the .nupkg files to publish, e.g. `rewrite-csharp/csharp/dist/*.nupkg`.
-        type: string
-        required: false
-        default: ''
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
@@ -59,8 +41,15 @@ on:
         description: Password for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
         required: false
       cgp_aws_access_key_id:
+        description: AWS access key id for the Maven dual-publish to the Code Genome Project.
         required: false
       cgp_aws_secret_access_key:
+        description: AWS secret access key for the Maven dual-publish to the Code Genome Project.
+        required: false
+      cgp_publish_token:
+        description: >
+          Code Genome Project token carrying the `publish` entitlement, used by the npm/PyPI/NuGet
+          publish tasks. Unrelated to the AWS keys above, which drive the Maven publish only.
         required: false
       cgp_artifacts_maven_username:
         description: Username for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
@@ -119,49 +108,4 @@ jobs:
           nuget_api_key: ${{ secrets.nuget_api_key }}
           cgp_aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
           cgp_aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
-
-      # !cancelled() so a failed public-registry push above does not skip these: the packaging
-      # tasks ran before it, so the distributables are on disk either way. Everything `ci`
-      # publishes is a snapshot, hence dist_tag: next.
-      - if: >
-          !cancelled() &&
-          inputs.cgp_npm_artifacts != '' &&
-          inputs.publish_snapshots &&
-          github.event_name != 'pull_request' &&
-          github.ref == 'refs/heads/main' &&
-          (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
-        uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
-        with:
-          ecosystem: npm
-          artifacts: ${{ inputs.cgp_npm_artifacts }}
-          dist_tag: next
-          aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
-          aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
-
-      - if: >
-          !cancelled() &&
-          inputs.cgp_pypi_artifacts != '' &&
-          inputs.publish_snapshots &&
-          github.event_name != 'pull_request' &&
-          github.ref == 'refs/heads/main' &&
-          (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
-        uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
-        with:
-          ecosystem: pypi
-          artifacts: ${{ inputs.cgp_pypi_artifacts }}
-          aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
-          aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
-
-      - if: >
-          !cancelled() &&
-          inputs.cgp_nuget_artifacts != '' &&
-          inputs.publish_snapshots &&
-          github.event_name != 'pull_request' &&
-          github.ref == 'refs/heads/main' &&
-          (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
-        uses: openrewrite/gh-automation/.github/actions/publish-cgp-packages@main
-        with:
-          ecosystem: nuget
-          artifacts: ${{ inputs.cgp_nuget_artifacts }}
-          aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
-          aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
+          cgp_publish_token: ${{ secrets.cgp_publish_token }}

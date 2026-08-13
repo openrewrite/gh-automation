@@ -35,11 +35,17 @@ inputs:
     required: false
     default: ''
   cgp_aws_access_key_id:
-    description: AWS access key id for publishing snapshots to the Code Genome Project.
+    description: AWS access key id for the Maven dual-publish to the Code Genome Project.
     required: false
     default: ''
   cgp_aws_secret_access_key:
-    description: AWS secret access key for publishing snapshots to the Code Genome Project.
+    description: AWS secret access key for the Maven dual-publish to the Code Genome Project.
+    required: false
+    default: ''
+  cgp_publish_token:
+    description: >
+      Code Genome Project token carrying the `publish` entitlement, used by the npm/PyPI/NuGet
+      publish tasks. Unrelated to the AWS keys above, which drive the Maven publish only.
     required: false
     default: ''
 
@@ -56,8 +62,12 @@ runs:
         ORG_GRADLE_PROJECT_nodeAuthToken: ${{ inputs.node_auth_token }}
         ORG_GRADLE_PROJECT_pypiToken: ${{ inputs.pypi_token }}
         ORG_GRADLE_PROJECT_nugetApiKey: ${{ inputs.nuget_api_key }}
-        # Publish snapshots to the Code Genome Project. Empty when a repo has not forwarded the
-        # secret, which leaves the org.openrewrite.build.publish-cgp convention plugin inert.
+        # The npm/PyPI/NuGet publish tasks. Empty when a repo has not forwarded the secret, which is
+        # why each of those tasks tests for blank rather than merely present.
+        ORG_GRADLE_PROJECT_cgpPublishToken: ${{ inputs.cgp_publish_token }}
+        # The MAVEN dual-publish to the Code Genome Project, and nothing else: this is Gradle's own
+        # s3:// transport under org.openrewrite.build.publish-cgp, not the package publishing above.
+        # Empty when a repo has not forwarded the secret, which leaves that plugin inert.
         AWS_ACCESS_KEY_ID: ${{ inputs.cgp_aws_access_key_id }}
         AWS_SECRET_ACCESS_KEY: ${{ inputs.cgp_aws_secret_access_key }}
         AWS_REGION: us-west-2

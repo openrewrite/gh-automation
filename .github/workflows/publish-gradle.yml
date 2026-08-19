@@ -52,7 +52,7 @@ on:
         required: false
 
 env:
-  GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon
+  GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon --refresh-dependencies
   ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.sonatype_username }}
   ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.sonatype_token }}
   ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}

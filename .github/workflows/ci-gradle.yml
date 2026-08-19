@@ -57,18 +57,12 @@ on:
       CODEGENOME_TOKEN:
         description: Token for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
         required: false
-      cgp_artifacts_maven_username:
-        description: Deprecated alias for CODEGENOME_USERNAME; drop once all callers have migrated.
-        required: false
-      cgp_artifacts_maven_token:
-        description: Deprecated alias for CODEGENOME_TOKEN; drop once all callers have migrated.
-        required: false
 
 # Resolve org.openrewrite and io.moderne dependencies from the Code Genome Project. Empty when a
 # repo has not forwarded the secret, which leaves the recipe-repositories convention plugin inert.
 env:
-  ORG_GRADLE_PROJECT_codegenomeUsername: ${{ secrets.CODEGENOME_USERNAME || secrets.cgp_artifacts_maven_username }}
-  ORG_GRADLE_PROJECT_codegenomePassword: ${{ secrets.CODEGENOME_TOKEN || secrets.cgp_artifacts_maven_token }}
+  ORG_GRADLE_PROJECT_codegenomeUsername: ${{ secrets.CODEGENOME_USERNAME }}
+  ORG_GRADLE_PROJECT_codegenomePassword: ${{ secrets.CODEGENOME_TOKEN }}
 
 jobs:
   build:

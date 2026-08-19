@@ -44,11 +44,17 @@ on:
           Code Genome Project token carrying the `publish` entitlement, used by the npm/PyPI/NuGet
           publish tasks. Unrelated to the AWS keys above, which drive the Maven publish only.
         required: false
-      cgp_artifacts_maven_username:
+      CODEGENOME_USERNAME:
         description: Username for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
         required: false
-      cgp_artifacts_maven_token:
+      CODEGENOME_TOKEN:
         description: Token for artifacts.codegenomeproject.org, used to resolve org.openrewrite and io.moderne dependencies.
+        required: false
+      cgp_artifacts_maven_username:
+        description: Deprecated alias for CODEGENOME_USERNAME; drop once all callers have migrated.
+        required: false
+      cgp_artifacts_maven_token:
+        description: Deprecated alias for CODEGENOME_TOKEN; drop once all callers have migrated.
         required: false
 
 env:
@@ -78,8 +84,8 @@ env:
   AWS_JAVA_V1_DISABLE_DEPRECATION_ANNOUNCEMENT: true
   # Resolve org.openrewrite and io.moderne dependencies from the Code Genome Project. Empty when a
   # repo has not forwarded the secret, which leaves the recipe-repositories convention plugin inert.
-  ORG_GRADLE_PROJECT_codegenomeUsername: ${{ secrets.cgp_artifacts_maven_username }}
-  ORG_GRADLE_PROJECT_codegenomePassword: ${{ secrets.cgp_artifacts_maven_token }}
+  ORG_GRADLE_PROJECT_codegenomeUsername: ${{ secrets.CODEGENOME_USERNAME || secrets.cgp_artifacts_maven_username }}
+  ORG_GRADLE_PROJECT_codegenomePassword: ${{ secrets.CODEGENOME_TOKEN || secrets.cgp_artifacts_maven_token }}
 
 jobs:
   release:

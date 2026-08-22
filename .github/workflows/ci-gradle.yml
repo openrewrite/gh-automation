@@ -4,6 +4,14 @@ name: ci-gradle
 on:
   workflow_call:
     inputs:
+      runs_on:
+        description: >
+          Runner label for the build job. Defaults to the free standard runner; override with an
+          organization larger-runner label to trade GitHub Actions spend for wall clock time.
+          Larger runners are billed per minute even on public repositories.
+        type: string
+        required: false
+        default: ubuntu-latest
       java_version:
         description: Java version for setup-java
         type: string
@@ -66,7 +74,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs_on }}
     if: github.event_name != 'schedule' || github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc'
     steps:
       - uses: openrewrite/gh-automation/.github/actions/setup@main

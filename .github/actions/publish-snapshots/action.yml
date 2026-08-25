@@ -1,11 +1,11 @@
 ---
 name: Publish snapshots
 description: |
-  Run `./gradlew --refresh-dependencies snapshot publish -PforceSigning -x test`
-  with Sonatype and signing credentials wired in via Gradle project properties.
+  Run `./gradlew --refresh-dependencies snapshot publish -x test` with signing
+  credentials wired in via Gradle project properties.
   `--refresh-dependencies` is required to clear Gradle's module-to-repository
   cache; without it Gradle can keep resolving `latest.integration` against
-  Maven Central only (skipping the Sonatype snapshot repo) once a stale mapping
+  Maven Central only (skipping the snapshot repository) once a stale mapping
   has been restored via gradle/actions cache fallback.
 
 inputs:
@@ -13,6 +13,17 @@ inputs:
     description: Gradle command-line switches.
     required: false
     default: --console=plain --info --stacktrace --warning-mode=all --no-daemon
+
+  # TODO Drop once org.openrewrite.build.publish stops applying the signing plugin; until then
+  # RewritePublishPlugin still signs the nebula publication, and an empty key fails the sign tasks
+  # outright on releases. See the follow-ups on openrewrite/rewrite-build-gradle-plugin#220.
+  ossrh_signing_key:
+    required: false
+    default: ''
+  ossrh_signing_password:
+    required: false
+    default: ''
+
   node_auth_token:
     required: false
     default: ''
@@ -41,8 +52,10 @@ runs:
   using: composite
   steps:
     - shell: bash
-      run: ./gradlew ${{ inputs.switches }} --refresh-dependencies snapshot publish -PforceSigning -x test
+      run: ./gradlew ${{ inputs.switches }} --refresh-dependencies snapshot publish -x test
       env:
+        ORG_GRADLE_PROJECT_signingKey: ${{ inputs.ossrh_signing_key }}
+        ORG_GRADLE_PROJECT_signingPassword: ${{ inputs.ossrh_signing_password }}
         ORG_GRADLE_PROJECT_nodeAuthToken: ${{ inputs.node_auth_token }}
         ORG_GRADLE_PROJECT_pypiToken: ${{ inputs.pypi_token }}
         ORG_GRADLE_PROJECT_nugetApiKey: ${{ inputs.nuget_api_key }}

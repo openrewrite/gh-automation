@@ -26,6 +26,8 @@ on:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
         required: false
+
+      # TODO Unused; remove after dropping the last caller
       sonatype_username:
         required: false
       sonatype_token:
@@ -34,6 +36,7 @@ on:
         required: false
       ossrh_signing_password:
         required: false
+
       OPS_GITHUB_ACTIONS_WEBHOOK:
         required: false
       node_auth_token:

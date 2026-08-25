@@ -1,8 +1,8 @@
 ---
 name: Publish snapshots
 description: |
-  Run `./gradlew --refresh-dependencies snapshot publish -x test` with signing
-  credentials wired in via Gradle project properties.
+  Run `./gradlew --refresh-dependencies snapshot publish -x test` with the
+  publishing credentials wired in via Gradle project properties.
   `--refresh-dependencies` is required to clear Gradle's module-to-repository
   cache; without it Gradle can keep resolving `latest.integration` against
   Maven Central only (skipping the snapshot repository) once a stale mapping
@@ -13,6 +13,16 @@ inputs:
     description: Gradle command-line switches.
     required: false
     default: --console=plain --info --stacktrace --warning-mode=all --no-daemon
+
+  # TODO Unused by the default publishing path, but kept wired until 2026-09-08: a repository that
+  # applies the deprecated org.openrewrite.build.publish-maven-central plugin to reach Central in an
+  # emergency also publishes its snapshots there, and would fail to authenticate without these.
+  sonatype_username:
+    required: false
+    default: ''
+  sonatype_token:
+    required: false
+    default: ''
 
   # TODO Drop once org.openrewrite.build.publish stops applying the signing plugin; until then
   # RewritePublishPlugin still signs the nebula publication, and an empty key fails the sign tasks
@@ -54,6 +64,8 @@ runs:
     - shell: bash
       run: ./gradlew ${{ inputs.switches }} --refresh-dependencies snapshot publish -x test
       env:
+        ORG_GRADLE_PROJECT_sonatypeUsername: ${{ inputs.sonatype_username }}
+        ORG_GRADLE_PROJECT_sonatypePassword: ${{ inputs.sonatype_token }}
         ORG_GRADLE_PROJECT_signingKey: ${{ inputs.ossrh_signing_key }}
         ORG_GRADLE_PROJECT_signingPassword: ${{ inputs.ossrh_signing_password }}
         ORG_GRADLE_PROJECT_nodeAuthToken: ${{ inputs.node_auth_token }}

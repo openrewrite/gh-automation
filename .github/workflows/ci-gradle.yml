@@ -26,14 +26,22 @@ on:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
         required: false
+
+      # TODO Unused by the default publishing path, but kept wired until 2026-09-08 to keep the
+      # deprecated org.openrewrite.build.publish-maven-central escape hatch usable; see the note in
+      # publish-gradle.yml. Remove then, and remove the secrets after dropping the last caller.
       sonatype_username:
         required: false
       sonatype_token:
         required: false
+
+      # TODO Still used. Drop once org.openrewrite.build.publish stops applying the signing plugin,
+      # then remove after dropping the last caller. See openrewrite/rewrite-build-gradle-plugin#220.
       ossrh_signing_key:
         required: false
       ossrh_signing_password:
         required: false
+
       OPS_GITHUB_ACTIONS_WEBHOOK:
         required: false
       node_auth_token:

@@ -29,7 +29,7 @@ Composite actions: individual steps shared between the workflows above (and call
 | --- | --- |
 | `setup` | Checkout with full history, install the requested JDK(s) and uv, configure Gradle with optional Develocity access. Expected to run first. |
 | `build` | Run `./gradlew build` with the standard CI switches. |
-| `publish-snapshots` | Publish snapshots with Sonatype and signing credentials wired in as Gradle project properties. |
+| `publish-snapshots` | Publish snapshots with the publishing credentials wired in as Gradle project properties. |
 | `slack-failure` | Post a CI failure notification to a Slack webhook; the caller supplies the `if:` guard. |
 
 ## Usage

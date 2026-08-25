@@ -13,14 +13,17 @@ on:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
         required: false
+
+      # TODO Unused; remove after dropping the last caller
       sonatype_username:
-        required: true
+        required: false
       sonatype_token:
-        required: true
+        required: false
       ossrh_signing_key:
-        required: true
+        required: false
       ossrh_signing_password:
-        required: true
+        required: false
+
       node_auth_token:
         required: false
       pypi_token:
@@ -53,10 +56,6 @@ on:
 
 env:
   GRADLE_SWITCHES: --console=plain --info --stacktrace --warning-mode=all --no-daemon --refresh-dependencies
-  ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.sonatype_username }}
-  ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.sonatype_token }}
-  ORG_GRADLE_PROJECT_signingKey: ${{ secrets.ossrh_signing_key }}
-  ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.ossrh_signing_password }}
   ORG_GRADLE_PROJECT_nodeAuthToken: ${{ secrets.node_auth_token }}
   ORG_GRADLE_PROJECT_pypiToken: ${{ secrets.pypi_token }}
   ORG_GRADLE_PROJECT_nugetApiKey: ${{ secrets.nuget_api_key }}

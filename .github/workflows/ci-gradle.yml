@@ -107,10 +107,6 @@ jobs:
           (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         uses: openrewrite/gh-automation/.github/actions/publish-snapshots@main
         with:
-          sonatype_username: ${{ secrets.sonatype_username }}
-          sonatype_token: ${{ secrets.sonatype_token }}
-          ossrh_signing_key: ${{ secrets.ossrh_signing_key }}
-          ossrh_signing_password: ${{ secrets.ossrh_signing_password }}
           node_auth_token: ${{ secrets.node_auth_token }}
           pypi_token: ${{ secrets.pypi_token }}
           nuget_api_key: ${{ secrets.nuget_api_key }}

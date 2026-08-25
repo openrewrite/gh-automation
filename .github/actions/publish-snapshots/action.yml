@@ -13,18 +13,6 @@ inputs:
     description: Gradle command-line switches.
     required: false
     default: --console=plain --info --stacktrace --warning-mode=all --no-daemon
-  sonatype_username:
-    required: false
-    default: ''
-  sonatype_token:
-    required: false
-    default: ''
-  ossrh_signing_key:
-    required: false
-    default: ''
-  ossrh_signing_password:
-    required: false
-    default: ''
   node_auth_token:
     required: false
     default: ''
@@ -55,10 +43,6 @@ runs:
     - shell: bash
       run: ./gradlew ${{ inputs.switches }} --refresh-dependencies snapshot publish -PforceSigning -x test
       env:
-        ORG_GRADLE_PROJECT_sonatypeUsername: ${{ inputs.sonatype_username }}
-        ORG_GRADLE_PROJECT_sonatypePassword: ${{ inputs.sonatype_token }}
-        ORG_GRADLE_PROJECT_signingKey: ${{ inputs.ossrh_signing_key }}
-        ORG_GRADLE_PROJECT_signingPassword: ${{ inputs.ossrh_signing_password }}
         ORG_GRADLE_PROJECT_nodeAuthToken: ${{ inputs.node_auth_token }}
         ORG_GRADLE_PROJECT_pypiToken: ${{ inputs.pypi_token }}
         ORG_GRADLE_PROJECT_nugetApiKey: ${{ inputs.nuget_api_key }}

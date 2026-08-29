@@ -62,7 +62,14 @@ runs:
   using: composite
   steps:
     - shell: bash
-      run: ./gradlew ${{ inputs.switches }} --refresh-dependencies snapshot publish -x test
+      # Gradle's s3:// transport puts objects under 100 MB in one request without setting a read
+      # limit, so AWS SDK v1 caps the retry rewind at 128 KB and any retryable S3 error fails the
+      # publish (gradle/gradle#30965). 100 MB is Gradle's multipart threshold, so every
+      # single-part put stays rewindable. Kept off `switches`, which callers replace wholesale.
+      run: >-
+        ./gradlew ${{ inputs.switches }}
+        -Dcom.amazonaws.sdk.s3.defaultStreamBufferSize=104857600
+        --refresh-dependencies snapshot publish -x test
       env:
         ORG_GRADLE_PROJECT_sonatypeUsername: ${{ inputs.sonatype_username }}
         ORG_GRADLE_PROJECT_sonatypePassword: ${{ inputs.sonatype_token }}
@@ -82,7 +89,7 @@ runs:
         AWS_REGION: us-west-2
         # Gradle's own s3:// transport still bundles AWS SDK for Java 1.x, which prints a
         # deprecation banner with a stack trace on every upload. Drop once Gradle ships
-        # https://github.com/gradle/gradle/pull/29686 (milestone 9.8.0).
+        # https://github.com/gradle/gradle/pull/29686 (milestone 9.9.0 RC1).
         AWS_JAVA_V1_DISABLE_DEPRECATION_ANNOUNCEMENT: true
 
     # A build may record the exact snapshot version of an artifact it just deployed

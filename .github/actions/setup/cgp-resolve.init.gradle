@@ -1,0 +1,49 @@
+// Lets plugin resolution reach the Code Genome Project.
+//
+// A plugin's classpath resolves from the repositories *settings* declares, before any project
+// exists, and those default to the Gradle Plugin Portal — which proxies Maven Central, where
+// org.openrewrite artifacts no longer are. `org.openrewrite.build.recipe-repositories` cannot help:
+// it is a project plugin, and the resolution that fails happens before it can run.
+//
+// CI gets this from the setup action, which copies it into GRADLE_USER_HOME/init.d so it covers
+// every Gradle invocation the job goes on to make. For local development, copy this same file to
+// ~/.gradle/init.d/ — it reads the credentials already in ~/.gradle/gradle.properties.
+//
+// Inert without those credentials, as on forks, which have no way to resolve these artifacts anyway.
+settingsEvaluated { settings ->
+    def cgpUsername = settings.providers.gradleProperty("codegenomeUsername").getOrElse("")
+    def cgpPassword = settings.providers.gradleProperty("codegenomePassword").getOrElse("")
+    if (!cgpUsername || !cgpPassword) {
+        return
+    }
+
+    def repositories = settings.pluginManagement.repositories
+
+    // An empty handler is what makes Gradle fall back to the plugin portal, so adding to one opts
+    // out of it
+    if (repositories.isEmpty()) {
+        repositories.gradlePluginPortal()
+    }
+
+    // Leave a repository the build declares for itself alone
+    if (repositories.findByName("codegenome") != null) {
+        return
+    }
+
+    // Appended rather than prepended, which a RepositoryHandler cannot do. Nothing is excluded from
+    // the repositories already there: a plugin's classpath is pinned to exact versions, so a hit
+    // anywhere is the same artifact, and excluding org.openrewrite from the portal would take the
+    // plugin markers with it.
+    repositories.maven {
+        name = "codegenome"
+        url = "https://artifacts.codegenomeproject.org/maven"
+        credentials {
+            username = cgpUsername
+            password = cgpPassword
+        }
+        content {
+            includeGroupAndSubgroups("org.openrewrite")
+            includeGroupAndSubgroups("io.moderne")
+        }
+    }
+}

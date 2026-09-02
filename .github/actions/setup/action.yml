@@ -34,3 +34,13 @@ runs:
     - uses: gradle/actions/setup-gradle@v5
       with:
         develocity-access-key: ${{ inputs.develocity_access_key }}
+
+    # Lets plugin resolution reach the Code Genome Project. Dropped in init.d rather than passed as
+    # --init-script so it covers every Gradle invocation the job goes on to make, and copied after
+    # setup-gradle so a restored cache cannot shadow it. See the script for why a project plugin
+    # cannot do this. Inert without the CGP credentials.
+    - shell: bash
+      run: |
+        gradle_user_home="${GRADLE_USER_HOME:-$HOME/.gradle}"
+        mkdir -p "$gradle_user_home/init.d"
+        cp "${{ github.action_path }}/cgp-resolve.init.gradle" "$gradle_user_home/init.d/"

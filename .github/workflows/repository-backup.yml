@@ -40,7 +40,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: ${{ inputs.bucket_region }}
-          role-to-assume: arn:aws:iam::297794628946:role/repository-backups-github-actions-role
+          role-to-assume: arn:aws:iam::297794628946:role/repository-backups-openrewrite-github-actions-role
       - name: Mirror repository to S3
         timeout-minutes: 30
         env:

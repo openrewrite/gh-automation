@@ -9,6 +9,11 @@ on:
         type: string
         default: https://s3.us-west-2.amazonaws.com
         required: false
+      bucket_region:
+        description: AWS region of the backup bucket.
+        type: string
+        default: us-west-2
+        required: false
     secrets:
       bucket_access_key_id:
         description: Value of the object storage bucket backup access key ID (e.g., S3 has ACCESS_KEY_ID).
@@ -29,11 +34,12 @@ jobs:
         with:
           fetch-depth: 0
           show-progress: false
-      - uses: peter-evans/s3-backup@v1
+      - name: Mirror repository to S3
+        timeout-minutes: 30
         env:
-          ACCESS_KEY_ID: ${{ secrets.bucket_access_key_id }}
-          SECRET_ACCESS_KEY: ${{ secrets.bucket_secret_access_key }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.bucket_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.bucket_secret_access_key }}
+          AWS_DEFAULT_REGION: ${{ inputs.bucket_region }}
+          AWS_ENDPOINT_URL_S3: ${{ inputs.bucket_storage_service_url }}
           MIRROR_TARGET: ${{ secrets.bucket_mirror_target }}/${{ github.repository }}
-          STORAGE_SERVICE_URL: ${{ inputs.bucket_storage_service_url }}
-        with:
-          args: --overwrite --remove
+        run: aws s3 sync --delete --no-follow-symlinks --no-progress . "s3://$MIRROR_TARGET"

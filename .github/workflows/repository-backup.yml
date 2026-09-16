@@ -29,17 +29,21 @@ jobs:
   repository-backup:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'openrewrite'
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           show-progress: false
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ inputs.bucket_region }}
+          role-to-assume: arn:aws:iam::297794628946:role/repository-backups-openrewrite-github-actions-role
       - name: Mirror repository to S3
         timeout-minutes: 30
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.bucket_access_key_id }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.bucket_secret_access_key }}
-          AWS_DEFAULT_REGION: ${{ inputs.bucket_region }}
           AWS_ENDPOINT_URL_S3: ${{ inputs.bucket_storage_service_url }}
           MIRROR_TARGET: ${{ secrets.bucket_mirror_target }}/${{ github.repository }}
         run: aws s3 sync --delete --no-follow-symlinks --no-progress . "s3://$MIRROR_TARGET"

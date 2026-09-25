@@ -14,16 +14,6 @@ inputs:
     required: false
     default: --console=plain --info --stacktrace --warning-mode=all --no-daemon
 
-  # TODO Unused by the default publishing path, but kept wired until 2026-09-08: a repository that
-  # applies the deprecated org.openrewrite.build.publish-maven-central plugin to reach Central in an
-  # emergency also publishes its snapshots there, and would fail to authenticate without these.
-  sonatype_username:
-    required: false
-    default: ''
-  sonatype_token:
-    required: false
-    default: ''
-
   # TODO Drop once org.openrewrite.build.publish stops applying the signing plugin; until then
   # RewritePublishPlugin still signs the nebula publication, and an empty key fails the sign tasks
   # outright on releases. See the follow-ups on openrewrite/rewrite-build-gradle-plugin#220.
@@ -71,8 +61,6 @@ runs:
         -Dcom.amazonaws.sdk.s3.defaultStreamBufferSize=104857600
         --refresh-dependencies snapshot publish -x test
       env:
-        ORG_GRADLE_PROJECT_sonatypeUsername: ${{ inputs.sonatype_username }}
-        ORG_GRADLE_PROJECT_sonatypePassword: ${{ inputs.sonatype_token }}
         ORG_GRADLE_PROJECT_signingKey: ${{ inputs.ossrh_signing_key }}
         ORG_GRADLE_PROJECT_signingPassword: ${{ inputs.ossrh_signing_password }}
         ORG_GRADLE_PROJECT_nodeAuthToken: ${{ inputs.node_auth_token }}

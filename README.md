@@ -13,7 +13,7 @@ Reusable workflows: entire jobs that another repository calls with `uses:` from 
 | Workflow | Purpose |
 | --- | --- |
 | `ci-gradle.yml` | Standard Gradle CI: build on `ubuntu-latest`, publish snapshots from `main`, notify Slack on scheduled-build failure. |
-| `publish-gradle.yml` | Release publishing from a tag: `candidate` for `-rc.` tags, `final` otherwise, closing and releasing the Sonatype staging repository. |
+| `publish-gradle.yml` | Release publishing from a tag: `candidate` for `-rc.` tags, `final` otherwise. |
 | `receive-pr-runner.yml` | Runs a Moderne CLI recipe against an incoming pull request and uploads the resulting diff as an artifact. Handles untrusted code, so it gets no secrets. |
 | `comment-pr-runner.yml` | Picks up that artifact from a `workflow_run` and posts the diff back as pull request review suggestions. Has write permissions, so it must not execute untrusted code. |
 | `repository-backup.yml` | Mirrors the repository to an S3-compatible object storage bucket. |

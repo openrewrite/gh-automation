@@ -16,11 +16,11 @@ on:
         required: false
     secrets:
       bucket_access_key_id:
-        description: Value of the object storage bucket backup access key ID (e.g., S3 has ACCESS_KEY_ID).
-        required: true
+        description: (DEPRECATED) Unused; credentials come from an assumed OIDC role.
+        required: false
       bucket_secret_access_key:
-        description: Value of the object storage bucket backup secret access key (e.g., S3 has ACCESS_KEY_SECRET).
-        required: true
+        description: (DEPRECATED) Unused; credentials come from an assumed OIDC role.
+        required: false
       bucket_mirror_target:
         description: Name of the object storage bucket backup to use.
         required: true

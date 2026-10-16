@@ -22,6 +22,13 @@ on:
         type: boolean
         default: true
         required: false
+      additional_test_java_versions:
+        description: >
+          JSON array of Java versions to also run the tests on, each in its own job next to the build job,
+          for example '[25]'. These jobs only run tests and never publish.
+        type: string
+        required: false
+        default: '[]'
     secrets:
       gradle_enterprise_access_key:
         description: Value of the Gradle Enterprise access token to use.
@@ -115,3 +122,39 @@ jobs:
           cgp_aws_access_key_id: ${{ secrets.cgp_aws_access_key_id }}
           cgp_aws_secret_access_key: ${{ secrets.cgp_aws_secret_access_key }}
           cgp_publish_token: ${{ secrets.cgp_publish_token }}
+
+  test:
+    name: test (Java ${{ matrix.java }})
+    runs-on: ${{ inputs.runs_on }}
+    if: >
+      inputs.additional_test_java_versions != '[]' &&
+      (github.event_name != 'schedule' || github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ${{ fromJSON(inputs.additional_test_java_versions) }}
+    steps:
+      - uses: openrewrite/gh-automation/.github/actions/setup@main
+        with:
+          java_version: |
+            ${{ inputs.java_version }}
+            ${{ matrix.java }}
+          develocity_access_key: ${{ secrets.gradle_enterprise_access_key }}
+
+      - uses: s4u/maven-settings-action@v4.0.0
+        with:
+          mirrors: '[{"id": "moderne-cache", "name": "Moderne Artifactory Cache", "mirrorOf": "*", "url": "https://artifactory.moderne.ninja/artifactory/moderne-cache-3/"}]'
+          servers: ${{ secrets.artifactory_username != '' && format('[{{"id":"moderne-cache","username":"{0}","password":"{1}"}}]', secrets.artifactory_username, secrets.artifactory_password) || '[]' }}
+
+      - uses: openrewrite/gh-automation/.github/actions/test-on-java@main
+        with:
+          java_version: ${{ matrix.java }}
+        env:
+          REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
+          REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
+          REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
+
+      - if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        uses: openrewrite/gh-automation/.github/actions/slack-failure@main
+        with:
+          webhook: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}

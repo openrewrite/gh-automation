@@ -1,0 +1,18 @@
+---
+name: Run Gradle tests on another Java version
+description: |
+  Run `./gradlew test` with the `test` task's launcher switched to the given Java version through
+  an init script, leaving the project's toolchain for compilation untouched.
+
+inputs:
+  java_version:
+    description: Java version to run the tests on. Must already be installed.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        TEST_JAVA_VERSION: ${{ inputs.java_version }}
+      run: ./gradlew --console=plain --info --stacktrace --warning-mode=all --no-daemon --init-script "$GITHUB_ACTION_PATH/test-java-version.gradle" test

@@ -1,0 +1,10 @@
+def testJavaVersion = JavaLanguageVersion.of(System.getenv('TEST_JAVA_VERSION'))
+
+allprojects {
+    plugins.withType(JavaPlugin).configureEach {
+        def toolchains = extensions.getByType(JavaToolchainService)
+        tasks.named('test', Test) {
+            javaLauncher = toolchains.launcherFor { languageVersion = testJavaVersion }
+        }
+    }
+}

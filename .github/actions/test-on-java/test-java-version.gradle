@@ -1,0 +1,13 @@
+def testJavaVersion = JavaLanguageVersion.of(gradle.startParameter.projectProperties['testJavaVersion'])
+
+allprojects {
+    // Defer until the build script has run, so its own test launcher configuration cannot override ours.
+    afterEvaluate {
+        plugins.withType(JavaPlugin).configureEach {
+            def toolchains = extensions.getByType(JavaToolchainService)
+            tasks.named('test', Test) {
+                javaLauncher = toolchains.launcherFor { languageVersion = testJavaVersion }
+            }
+        }
+    }
+}

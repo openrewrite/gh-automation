@@ -24,8 +24,8 @@ on:
         required: false
       additional_test_java_versions:
         description: >
-          JSON array of Java versions to also run the tests on, each in its own job next to the build job,
-          for example '[25]'. These jobs only run tests and never publish.
+          JSON array of Java feature release numbers to also run the tests on, each in its own job next to
+          the build job, for example '[25]'. These jobs only run tests and never publish.
         type: string
         required: false
         default: '[]'
@@ -127,7 +127,7 @@ jobs:
     name: test (Java ${{ matrix.java }})
     runs-on: ${{ inputs.runs_on }}
     if: >
-      inputs.additional_test_java_versions != '[]' &&
+      fromJSON(inputs.additional_test_java_versions)[0] != null &&
       (github.event_name != 'schedule' || github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
     strategy:
       fail-fast: false
@@ -137,8 +137,8 @@ jobs:
       - uses: openrewrite/gh-automation/.github/actions/setup@main
         with:
           java_version: |
-            ${{ inputs.java_version }}
             ${{ matrix.java }}
+            ${{ inputs.java_version }}
           develocity_access_key: ${{ secrets.gradle_enterprise_access_key }}
 
       - uses: s4u/maven-settings-action@v4.0.0

@@ -12,7 +12,7 @@ Reusable workflows: entire jobs that another repository calls with `uses:` from 
 
 | Workflow | Purpose |
 | --- | --- |
-| `ci-gradle.yml` | Standard Gradle CI: build on `ubuntu-latest`, publish snapshots from `main`, notify Slack on scheduled-build failure. |
+| `ci-gradle.yml` | Standard Gradle CI: build on `ubuntu-latest`, optionally test on additional Java versions, publish snapshots from `main`, notify Slack on scheduled-build failure. |
 | `publish-gradle.yml` | Release publishing from a tag: `candidate` for `-rc.` tags, `final` otherwise. |
 | `receive-pr-runner.yml` | Runs a Moderne CLI recipe against an incoming pull request and uploads the resulting diff as an artifact. Handles untrusted code, so it gets no secrets. |
 | `comment-pr-runner.yml` | Picks up that artifact from a `workflow_run` and posts the diff back as pull request review suggestions. Has write permissions, so it must not execute untrusted code. |
@@ -29,6 +29,7 @@ Composite actions: individual steps shared between the workflows above (and call
 | --- | --- |
 | `setup` | Checkout with full history, install the requested JDK(s) and uv, configure Gradle with optional Develocity access. Expected to run first. |
 | `build` | Run `./gradlew build` with the standard CI switches. |
+| `test-on-java` | Run `./gradlew test` on another installed Java version, leaving compilation on the project's toolchain. |
 | `publish-snapshots` | Publish snapshots with the publishing credentials wired in as Gradle project properties. |
 | `slack-failure` | Post a CI failure notification to a Slack webhook; the caller supplies the `if:` guard. |
 

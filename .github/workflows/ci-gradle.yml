@@ -98,9 +98,9 @@ jobs:
 
       - uses: openrewrite/gh-automation/.github/actions/build@main
         env:
-          REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
-          REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
-          REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
+          MAVEN_CENTRAL_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
+          MAVEN_CENTRAL_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
+          MAVEN_CENTRAL_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
 
       - if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         uses: openrewrite/gh-automation/.github/actions/slack-failure@main
@@ -150,9 +150,9 @@ jobs:
         with:
           java_version: ${{ matrix.java }}
         env:
-          REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
-          REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
-          REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
+          MAVEN_CENTRAL_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
+          MAVEN_CENTRAL_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
+          MAVEN_CENTRAL_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
 
       - if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         uses: openrewrite/gh-automation/.github/actions/slack-failure@main

@@ -61,9 +61,9 @@ env:
   # The npm/PyPI/NuGet publish tasks. Empty when a repo has not forwarded the secret, which is why
   # each of those tasks tests for blank rather than merely present.
   ORG_GRADLE_PROJECT_cgpPublishToken: ${{ secrets.cgp_publish_token }}
-  REWRITE_GRADLE_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
-  REWRITE_GRADLE_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
-  REWRITE_GRADLE_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
+  MAVEN_CENTRAL_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
+  MAVEN_CENTRAL_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
+  MAVEN_CENTRAL_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
   # The MAVEN dual-publish to the Code Genome Project, and nothing else: this is Gradle's own s3://
   # transport under org.openrewrite.build.publish-cgp, not the package publishing above. Empty when
   # a repo has not forwarded the secret, which leaves that convention plugin inert.

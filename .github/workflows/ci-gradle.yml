@@ -16,7 +16,7 @@ on:
         description: Java version for setup-java
         type: string
         required: false
-        default: 21
+        default: 25
       publish_snapshots:
         description: Whether to attempt publishing snapshots. When false, the workflow will only run build.
         type: boolean
@@ -25,7 +25,7 @@ on:
       additional_test_java_versions:
         description: >
           JSON array of Java feature release numbers to also run the tests on, each in its own job next to
-          the build job, for example '[25]'. These jobs only run tests and never publish.
+          the build job, for example '[26]'. These jobs only run tests and never publish.
         type: string
         required: false
         default: '[]'

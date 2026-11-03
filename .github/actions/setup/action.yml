@@ -10,7 +10,7 @@ inputs:
   java_version:
     description: Java version(s) to install (passed verbatim to actions/setup-java).
     required: false
-    default: '21'
+    default: '25'
   develocity_access_key:
     description: Develocity / Gradle Enterprise access key, if any.
     required: false

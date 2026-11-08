@@ -28,10 +28,14 @@ on:
       nuget_api_key:
         required: false
       artifactory_username:
-        description: Username for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
+        description: >
+          No longer read: the Maven and Gradle mirrors read the Code Genome Project's Maven cache with
+          CODEGENOME_USERNAME and CODEGENOME_TOKEN. Still declared, so that callers passing it still run.
         required: false
       artifactory_password:
-        description: Password for artifactory.moderne.ninja, used for both the Maven mirror and the Gradle mirror.
+        description: >
+          No longer read: the Maven and Gradle mirrors read the Code Genome Project's Maven cache with
+          CODEGENOME_USERNAME and CODEGENOME_TOKEN. Still declared, so that callers passing it still run.
         required: false
       cgp_aws_access_key_id:
         description: AWS access key id for the Maven dual-publish to the Code Genome Project.
@@ -61,9 +65,11 @@ env:
   # The npm/PyPI/NuGet publish tasks. Empty when a repo has not forwarded the secret, which is why
   # each of those tasks tests for blank rather than merely present.
   ORG_GRADLE_PROJECT_cgpPublishToken: ${{ secrets.cgp_publish_token }}
-  MAVEN_CENTRAL_MIRROR_URL: https://artifactory.moderne.ninja/artifactory/moderne-cache-3/
-  MAVEN_CENTRAL_MIRROR_USERNAME: ${{ secrets.artifactory_username }}
-  MAVEN_CENTRAL_MIRROR_PASSWORD: ${{ secrets.artifactory_password }}
+  # The Code Genome Project's Maven cache, with the token below. Readers of these three use the mirror only
+  # when all three are set, so a repo that has not forwarded the token reads Central itself.
+  MAVEN_CENTRAL_MIRROR_URL: https://artifacts.codegenomeproject.org/maven-public/
+  MAVEN_CENTRAL_MIRROR_USERNAME: ${{ secrets.CODEGENOME_USERNAME }}
+  MAVEN_CENTRAL_MIRROR_PASSWORD: ${{ secrets.CODEGENOME_TOKEN }}
   # The MAVEN dual-publish to the Code Genome Project, and nothing else: this is Gradle's own s3://
   # transport under org.openrewrite.build.publish-cgp, not the package publishing above. Empty when
   # a repo has not forwarded the secret, which leaves that convention plugin inert.
@@ -100,12 +106,12 @@ jobs:
         with:
           develocity-access-key: ${{ secrets.gradle_enterprise_access_key }}
 
-      # Route Maven resolution through Moderne's Artifactory cache to avoid
-      # Maven Central rate-limiting (HTTP 429) under parallel test load.
+      # Route Maven resolution through the Code Genome Project's Maven cache, maven-public, to avoid
+      # Maven Central rate-limiting (HTTP 429) under parallel test load. Without a CGP token, Central itself.
       - uses: s4u/maven-settings-action@v4.0.0
         with:
-          mirrors: '[{"id": "moderne-cache", "name": "Moderne Artifactory Cache", "mirrorOf": "*", "url": "https://artifactory.moderne.ninja/artifactory/moderne-cache-3/"}]'
-          servers: ${{ secrets.artifactory_username != '' && format('[{{"id":"moderne-cache","username":"{0}","password":"{1}"}}]', secrets.artifactory_username, secrets.artifactory_password) || '[]' }}
+          mirrors: ${{ secrets.CODEGENOME_TOKEN != '' && '[{"id":"moderne-cache","name":"Code Genome Project Maven cache","mirrorOf":"*","url":"https://artifacts.codegenomeproject.org/maven-public/"}]' || '[]' }}
+          servers: ${{ secrets.CODEGENOME_TOKEN != '' && format('[{{"id":"moderne-cache","username":"{0}","password":"{1}"}}]', secrets.CODEGENOME_USERNAME, secrets.CODEGENOME_TOKEN) || '[]' }}
 
       - name: publish-candidate
         if: contains(github.ref, '-rc.')
